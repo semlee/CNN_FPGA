@@ -1,4 +1,3 @@
-import math
 import numpy as np
 
 ## inputs obtained from surveying of CNN
