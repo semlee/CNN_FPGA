@@ -76,3 +76,6 @@ CTC_Ratio = Total_num_operation / Total_num_external_data
 # Basic Print
 print ("Computational Roof = ", Compute_Roof )
 print("Computation to Communication Ratio = ", CTC_Ratio)
+
+# Plotting using Pandas
+# Reference line of y-axis is from Bandwidth roof upper bound
