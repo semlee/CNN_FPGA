@@ -143,7 +143,8 @@ def find_optimal_solution(pixel_datawidth, weight_datawidth, NifL, NoxL, NoyL, N
             best_solution_index = i
     print(f'The optimal solution is Tox:{optimal_solutions[best_solution_index][1]} , Toy: {optimal_solutions[best_solution_index][2]}, Tof: {optimal_solutions[best_solution_index][3]}')
     
-    
+
+## A simple test
 import numpy as np
 import heapq
 import math
