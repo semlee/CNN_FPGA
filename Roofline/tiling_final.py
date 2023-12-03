@@ -1,163 +1,147 @@
-## find the minimum number of cycles required to compute one layer after applying the roorline model
-def roofline (Nox, Noy, Nif, Nof, Nkx, Nky, S, Tox, Toy, Tif, Tof, bandwidth):
-    R = Nox
-    C = Noy
-    N = Nif
-    M = Nof
-    K = Nkx
-    Tr = Tox
-    Tc = Toy
-    Tn = Tif
-    Tm = Tof
-    Nix = Nox
-    Niy = Noy
-    Tix = Tox
-    Tiy = Toy
-    output_reuse = 1
-    
-    Total_num_operation = 2 * R * C * M  * N * K * K
-    Num_Exe_cycles = math.ceil(M/Tm) * math.ceil(N/Tn) * R * C * K * K
-    Compute_Roof = Total_num_operation / Num_Exe_cycles
-    
-    
-    alpha_in = M/Tm * N/Tn * R/Tr * C/Tc
-    alpha_weight = alpha_in
-    alpha_out_no_reuse = 2 * alpha_weight # not using data reuse
-    alpha_out_reuse = M/Tm * R/Tr * C/Tc
-
-    if output_reuse == 1: 
-        alpha_out = alpha_out_reuse 
-    else:
-        alpha_out = alpha_out_no_reuse 
-
-    B_in = Tn * (S*Tr + K - S) * (S * Tc + K - S)
-    B_weight = Tm * Tn * K * K
-    B_out = Tm * Tr * Tc
-
-    # Compute CTC Ratio
-    Total_num_external_data = alpha_in * B_in + alpha_weight * B_weight + alpha_out * B_out
-
-    CTC_Ratio = Total_num_operation / Total_num_external_data
-    
-    final_Gflops = min(bandwidth*CTC_Ratio, Compute_Roof)
-    num_cycles = Total_num_operation / final_Gflops
-    
-    return num_cycles
-
-def Tiling(pixel_datawidth, weight_datawidth, NifL, NoxL, NoyL, NkxL, NkyL, NofL, S):
-    CONVs = len(NifL); # number of convolution layers
-
-    # Tiling variables that are already set
-    TkxL = NkxL
-    TkyL = NkyL
-    TifL = NifL
-
-    # Initialize the minimum buffer size to a large number
-    min_BUF_px_wt = float('inf')
-    opt_Tox = 0
-    opt_Toy = 0
-    opt_Tof = 0
-
-    top_solutions = []
-
-    # Iteratee over possible values of Tox, Toy, and Tof
-    for Tox in range (1, max(NoxL)):
-        for Toy in range (1, max(NoyL)):
-            for Tof in range (1, max(NofL)):
-                words_pxL = (Tox * Toy * TifL) + (Tox * Toy * Tof)
-                words_wtL = Tof * TifL * TkxL * TkyL
-                
-                # Calculate buffer sizes for each layer and sum them
-                bits_BUF_px = max(words_pxL) * pixel_datawidth
-                bits_BUF_wt = max(words_wtL) * weight_datawidth
-                bits_BUF_px_wt = bits_BUF_px + bits_BUF_wt
-
-                # Calculate the number of tiles for each layer
-                Tile_pxL = np.ceil(NoxL / Tox) * np.ceil(NoyL / Toy)
-                Tile_wtL = np.ceil(NofL / Tof)
-
-                condition_satisfied = np.all((Tile_pxL == 1) | (Tile_wtL == 1))
-
-                if condition_satisfied:
-                    heapq.heappush(top_solutions, (-bits_BUF_px_wt, Tof, Tox, Toy))
-                    if len(top_solutions) > 5:
-                        heapq.heappop(top_solutions)
-    return top_solutions
-
-
-# find the top (20) sets of Tox, Toy and Tof that result in minimum buffer size
-def Tiling(pixel_datawidth, weight_datawidth, NifL, NoxL, NoyL, NkxL, NkyL, NofL, S):
-    CONVs = len(NifL); # number of convolution layers
-
-    # Tiling variables that are already set
-    TkxL = NkxL
-    TkyL = NkyL
-    TifL = NifL
-
-    # Initialize the minimum buffer size to a large number
-    min_BUF_px_wt = float('inf')
-    opt_Tox = 0
-    opt_Toy = 0
-    opt_Tof = 0
-
-    top_solutions = []
-
-    # Iteratee over possible values of Tox, Toy, and Tof
-    for Tox in range (1, max(NoxL)):
-        for Toy in range (1, max(NoyL)):
-            for Tof in range (1, max(NofL)):
-                words_pxL = (Tox * Toy * TifL) + (Tox * Toy * Tof)
-                words_wtL = Tof * TifL * TkxL * TkyL
-                
-                # Calculate buffer sizes for each layer and sum them
-                bits_BUF_px = max(words_pxL) * pixel_datawidth
-                bits_BUF_wt = max(words_wtL) * weight_datawidth
-                bits_BUF_px_wt = bits_BUF_px + bits_BUF_wt
-
-                # Calculate the number of tiles for each layer
-                Tile_pxL = np.ceil(NoxL / Tox) * np.ceil(NoyL / Toy)
-                Tile_wtL = np.ceil(NofL / Tof)
-
-                condition_satisfied = np.all((Tile_pxL == 1) | (Tile_wtL == 1))
-
-                if condition_satisfied:
-                    heapq.heappush(top_solutions, (-bits_BUF_px_wt, Tof, Tox, Toy))
-                    if len(top_solutions) > 20:
-                        heapq.heappop(top_solutions)
-    return top_solutions
-
-
-# find the optimal solution given the parameters of the CNN
-def find_optimal_solution(pixel_datawidth, weight_datawidth, NifL, NoxL, NoyL, NkxL, NkyL, NofL, S, bandwidth):
-    optimal_solutions = Tiling(pixel_datawidth, weight_datawidth, NifL, NoxL, NoyL, NkxL, NkyL, NofL, S)
-    optimal_solutions = sorted(optimal_solutions, reverse=True)
-    best_solution_index = 0
-    best_solution_cycles = float('inf')
-    for i in range (len(optimal_solutions)):
-        total_cycles = 0
-        for j in range (len(NifL)):
-            num_cycles = roofline(NoxL[j],NoyL[j], NifL[j], NofL[j], NkxL[j], NkyL[j], S[j], optimal_solutions[i][1],optimal_solutions[i][2], NifL[j], optimal_solutions[i][3], bandwidth)
-            total_cycles += num_cycles
-        if(total_cycles < best_solution_cycles):
-            best_solution_cycles = total_cycles
-            best_solution_index = i
-    print(f'The optimal solution is Tox:{optimal_solutions[best_solution_index][1]} , Toy: {optimal_solutions[best_solution_index][2]}, Tof: {optimal_solutions[best_solution_index][3]}')
-    
-
-## A simple test
 import numpy as np
-import heapq
 import math
 
-pixel_datawidth = 5
-weight_datawidth = 5
-NifL = np.array([8,6,1])
-NoxL = np.array([5,6,7])
-NoyL = np.array([7,9,11])
-NkxL = np.array([12,9,7])
-NkyL = np.array([4,4,4])
-NofL = np.array([1,8,5])
-S = np.array([1,1,1])
-bandwidth = 1
+def gcd(a, b):
+    while b:
+        a, b = b, a % b
+    return a
 
-find_optimal_solution(pixel_datawidth, weight_datawidth, NifL, NoxL, NoyL, NkxL, NkyL, NofL, S, bandwidth)
+def find_greatest_common_factor(N):
+    current_gcd = N[0]
+    for num in N[1:]:
+        current_gcd = gcd(current_gcd, num)
+    return current_gcd
+
+def find_unrolling(Nox, Noy, Nof, DSP):
+    Pox_step = find_greatest_common_factor(Nox)
+    Poy_step = find_greatest_common_factor(Noy)
+    Pof_step = find_greatest_common_factor(Nof)
+    Pox = Pox_step
+    Poy = Poy_step
+    Pof = Pof_step
+    while True:
+        fail_num = 3
+        if Pox+Pox_step <= min(Nox) and (Pox+Pox_step)*Poy*Pof <= DSP:
+            fail_num -= 1
+            Pox = Pox + Pox_step
+        if Poy+Poy_step <= min(Noy) and Pox*(Poy+Poy_step)*Pof <= DSP:
+            fail_num -= 1
+            Poy = Poy + Poy_step
+        if Pof+Pof_step <= min(Nof) and Pox*Poy*(Pof+Pof_step) <= DSP:
+            fail_num -= 1
+            Pof = Pof + Pof_step
+        if fail_num == 3:
+            break
+    return Poy, Pof          
+
+def find_possible_tiling(N, P):
+    T_temp = []
+    Ts = []
+    T = P
+    while T <= N:
+        if N%T == 0:
+            Ts.append(T)
+            T_temp.append(float('inf'))
+        else:
+            T_temp.append(math.ceil(N/T)-N/T)
+        if T+P > N:
+            break
+        T += P
+    num = len(T_temp) - len(Ts)
+    ite = 0
+    while len(Ts) < 4:
+        if ite == len(T_temp):
+            break
+        ite += 1
+        if min(T_temp)!= float('inf'):
+            Ts.append(P+P*T_temp.index(min(T_temp)))
+            T_temp[T_temp.index(min(T_temp))] = float('inf')
+    return np.array(Ts)
+        
+def tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S):
+    Tkx = Nkx
+    Tky = Nky
+    Tif = Nif
+    Tox = Nox
+    CONVs = len(Nif)
+    Toys = [0]*CONVs
+    Tofs = [0]*CONVs
+    Toy_interm = np.array([0]*CONVs)
+    Tof_interm = np.array([0]*CONVs)
+    for L in range (CONVs):
+        Toys[L] = sorted(find_possible_tiling(Noy[L], Poy)) #y
+        Tofs[L] = sorted(find_possible_tiling(Nof[L], Pof)) #f
+        Toy_interm[L] = Toys[L][0] # assume smallest Noy buffer 
+        Tof_interm[L] = Nof[L] #assume choose fully buffer Nof 
+    words_px = [0]*CONVs
+    words_wt = [0]*CONVs
+    for L in range (CONVs):
+        Tix = (Tox[L]-1)*S + Nkx
+        Tiy = (Toy_interm-1)*S + Nky
+        words_px[L] = Tix[L] * Tiy[L] * Tif[L] + Tox[L] * Toy_interm[L] * Tof_interm[L]
+        words_wt[L] = Nof[L] * Tif[L] * Tkx[L] * Tky[L]
+    bits_BUF_px_wt = max(words_px)*pixel_datawidth + max(words_wt) * weight_datawidth
+    print(f'\ninitial: {bits_BUF_px_wt}\n')
+    switched = [0] * CONVs
+    Tix = (Tox-1)*S + Nkx
+    Tiy = (Noy-1)*S + Nky
+    while True:   
+        temp_words_px = words_px
+        temp_words_wt = words_wt
+        switch_index = temp_words_wt.index(max(temp_words_wt))
+        temp_words_px[switch_index] = Tix[switch_index] * Tiy[switch_index] * Tif[switch_index] + Tox[switch_index] * Noy[switch_index] * Tofs[switch_index][0]
+        temp_words_wt[switch_index] = Tofs[switch_index][0] * Tif[switch_index] * Tkx[switch_index] * Tky[switch_index]
+        if max(temp_words_px)*pixel_datawidth + max(temp_words_wt) * weight_datawidth < bits_BUF_px_wt:
+            words_px = temp_words_px
+            words_wt = temp_words_wt
+            Toy_interm[switch_index] = Noy[switch_index]
+            Tof_interm[switch_index] = Tofs[switch_index][0]
+            switched[switch_index] = 1
+            bits_BUF_px_wt = max(temp_words_px)*pixel_datawidth + max(temp_words_wt) * weight_datawidth
+            print('SWITCHING')
+            print(switched)
+        else:
+            break
+            
+    max_words_px = max(words_px)
+    #print(f'max_words_px: {max_words_px}')
+    max_words_wt = max(words_wt)
+    Tix = (Tox-1)*S + Nkx
+    for L in range (CONVs):
+        if switched[L] == 1:
+            for i in range(len(Tofs[L])):
+                Tiy = (Noy-1)*S + Nky
+                if Tix[L] * Tiy[L] * Tif[L] + Tox[L] * Toy_interm[L] * Tofs[L][i] <= max_words_px and Tofs[L][i] * Tif[L] * Tkx[L] * Tky[L] <= max_words_wt:
+                    Tof_interm[L] = Tofs[L][i]
+                    #print(f'working 1 {L}')
+                else:
+                    break
+        else:
+            for i in range(len(Toys[L])):
+                Tiy = (Toys[L][i]-1)*S + Nky
+                #print(f'words_px = {Tix[L] * Tiy[L] * Tif[L] + Tox[L] * Tofs[L][i] * Tof_interm[L]} {L}')
+                if Tix[L] * Tiy[L] * Tif[L] + Tox[L] * Tofs[L][i] * Tof_interm[L] <= max_words_px:
+                    Toy_interm[L] = Toys[L][i]
+                    #print(f'working 2 {L}')
+                else:
+                    break
+    print(f'\nfinal: {bits_BUF_px_wt}\n')
+    print(f'Toy: {Toy_interm}')
+    print(f'Tof: {Tof_interm}')
+    return
+
+def optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP):
+    (Poy, Pof) = find_unrolling(Nox,Noy,Nof,DSP)
+    tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S)
+
+pixel_datawidth = 1
+weight_datawidth = 1
+Nox = np.array([64,32,16,8,4])
+Noy = np.array([64,32,16,8,4])
+Nof = np.array([40,80,160,320,640])
+S = np.array([1,1,1,1,1])
+DSP = 2000
+Nkx = np.array([3,4,5,6,7])
+Nky = np.array([3,4,5,6,7])
+Nif = np.array([8,8,8,8,8])
+optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP)
