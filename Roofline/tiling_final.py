@@ -2,38 +2,70 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 
-def gcd(a, b):
-    while b:
-        a, b = b, a % b
-    return a
+def find_factors(number):
+    factors = []
+    for i in range(2, number + 1):
+        if number % i == 0:
+            factors.append(i)
+    return factors
 
 def find_greatest_common_factor(N):
     current_gcd = N[0]
     for num in N[1:]:
-        current_gcd = gcd(current_gcd, num)
+        current_gcd = math.gcd(current_gcd, num)
     return current_gcd
 
-def find_unrolling(Nox, Noy, Nof, DSP):
-    Pox_step = find_greatest_common_factor(Nox)
-    Poy_step = find_greatest_common_factor(Noy)
-    Pof_step = find_greatest_common_factor(Nof)
-    Pox = Pox_step
-    Poy = Poy_step
-    Pof = Pof_step
-    while True:
-        fail_num = 3
-        if Pox+Pox_step <= min(Nox) and (Pox+Pox_step)*Poy*Pof <= DSP:
-            fail_num -= 1
-            Pox = Pox + Pox_step
-        if Poy+Poy_step <= min(Noy) and Pox*(Poy+Poy_step)*Pof <= DSP:
-            fail_num -= 1
-            Poy = Poy + Poy_step
-        if Pof+Pof_step <= min(Nof) and Pox*Poy*(Pof+Pof_step) <= DSP:
-            fail_num -= 1
-            Pof = Pof + Pof_step
-        if fail_num == 3:
-            break
-    return Poy, Pof          
+def find_unrolling(Nox,Noy,Nof,DSP):
+    Ps = [0]*3
+    Ps[0] = find_greatest_common_factor(Nox)
+    Ps[1] = find_greatest_common_factor(Noy)
+    Ps[2] = find_greatest_common_factor(Nof)
+    values_Pox = (find_factors(Ps[0]))[::-1]
+    values_Poy = (find_factors(Ps[1]))[::-1]
+    values_Pof = (find_factors(Ps[2]))[::-1]
+    Ps[0] = values_Pox[0]
+    Ps[1] = values_Poy[0]
+    Ps[2] = values_Pof[0]
+    Nox_sum = sum(Nox)
+    Noy_sum = sum(Noy)
+    Nof_sum = sum(Nof)
+    N_sum = Nox_sum+Noy_sum+Nof_sum
+    P_sum = sum(Ps)
+    index_Pox = 0
+    index_Poy = 0
+    index_Pof = 0
+    if np.array_equal(Nox,Noy):
+        equal = 1
+    else:
+        equal = 0
+    
+    if math.prod(Ps) <= DSP:
+        return Ps
+    else: 
+        while math.prod(Ps) > DSP:
+            discrpancy_Pox = Ps[0]/P_sum - Nox_sum/N_sum
+            discrpancy_Poy = Ps[1]/P_sum - Noy_sum/N_sum
+            discrpancy_Pof = Ps[2]/P_sum - Nof_sum/N_sum
+            if equal == 0:
+                if discrpancy_Pox >= discrpancy_Poy and discrpancy_Pox >= discrpancy_Pof and index_Pox < len(values_Pox):
+                    index_Pox += 1
+                    Ps[0] = values_Pox[index_Pox]
+                elif discrpancy_Poy >= discrpancy_Pox and discrpancy_Poy >= discrpancy_Pof and index_Poy < len(values_Poy):
+                    index_Poy += 1
+                    Ps[1] = values_Poy[index_Poy]
+                elif discrpancy_Pof >= discrpancy_Pox and discrpancy_Pof >= discrpancy_Poy and index_Pof < len(values_Pof):
+                    index_Pof += 1
+                    Ps[2] = values_Pof[index_Pof]
+            else:
+                if discrpancy_Pox >= discrpancy_Poy and index_Pox < len(values_Pox):
+                    index_Pox += 1
+                    index_Poy += 1
+                    Ps[0] = values_Pox[index_Pox]
+                    Ps[1] = values_Pox[index_Poy]
+                elif discrpancy_Pof >= discrpancy_Pox and index_Pof < len(values_Pof):
+                    index_Pof += 1
+                    Ps[2] = values_Pof[index_Pof]
+    return Ps   
 
 def find_possible_tiling(N, P):
     T_temp = []
@@ -101,7 +133,6 @@ def tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky,
     switched = np.array([0] * CONVs)
     switched_temp = np.array([0] * CONVs)
     bits_BUF_px_wt = max(words_px_low) + max(words_wt_high)
-    #print(f'\nfinal: {bits_BUF_px_wt}\n')
     while True:
         Toy_temp = np.array(Toy)
         Tof_temp = np.array(Tof)
@@ -125,8 +156,6 @@ def tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky,
             switched = np.array(switched_temp)
         else:
             break
-#     print(f'Toy: {Toy}')
-#     print(f'Tof: {Tof}')
     max_words_px = max(words_px)
     max_words_wt = max(words_wt)
     Tix = (Tox-1)*S + Nkx
@@ -145,13 +174,11 @@ def tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky,
                     Toy[L] = Toys[L][i]
                 else:
                     break
-    #print(f'\nfinal: {bits_BUF_px_wt}\n')
-#     print(f'Toy: {Toy}')
-#     print(f'Tof: {Tof}')
     return
 
 def optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP):
-    (Poy, Pof) = find_unrolling(Nox,Noy,Nof,DSP)
+    (Pox, Poy, Pof) = find_unrolling(Nox,Noy,Nof,DSP)
+    print(Pox, Poy,Pof)
     tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S)
 
 pixel_datawidth = 1
@@ -163,5 +190,5 @@ S = np.array([1,1,1,1,1,1,1,1,1,1,1,1,1])
 Nkx = np.array([3,3,3,3,3,3,3,3,3,3,3,3,3])
 Nky = np.array([3,3,3,3,3,3,3,3,3,3,3,3,3])
 Nif = np.array([3,64,128,128,256,256,256,512,512,512,512,512,512])
-DSP = 3000
+DSP = 3200
 optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP)
