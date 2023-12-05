@@ -16,21 +16,16 @@ def find_greatest_common_factor(N):
     return current_gcd
 
 def find_unrolling(Nox,Noy,Nof,DSP):
-    Ps = [0]*3
-    Ps[0] = find_greatest_common_factor(Nox)
-    Ps[1] = find_greatest_common_factor(Noy)
-    Ps[2] = find_greatest_common_factor(Nof)
-    values_Pox = (find_factors(Ps[0]))[::-1]
-    values_Poy = (find_factors(Ps[1]))[::-1]
-    values_Pof = (find_factors(Ps[2]))[::-1]
-    Ps[0] = values_Pox[0]
-    Ps[1] = values_Poy[0]
-    Ps[2] = values_Pof[0]
+    Pox = find_greatest_common_factor(Nox)
+    Poy = find_greatest_common_factor(Noy)
+    Pof = find_greatest_common_factor(Nof)
+    values_Pox = (find_factors(Pox))[::-1]
+    values_Poy = (find_factors(Poy))[::-1]
+    values_Pof = (find_factors(Pof))[::-1]
     Nox_sum = sum(Nox)
     Noy_sum = sum(Noy)
     Nof_sum = sum(Nof)
     N_sum = Nox_sum+Noy_sum+Nof_sum
-    P_sum = sum(Ps)
     index_Pox = 0
     index_Poy = 0
     index_Pof = 0
@@ -39,37 +34,38 @@ def find_unrolling(Nox,Noy,Nof,DSP):
     else:
         equal = 0
     
-    if math.prod(Ps) <= DSP:
-        return Ps
+    if Pox*Poy*Pof <= DSP:
+        return Pox, Poy, Pof
     else: 
-        while math.prod(Ps) > DSP:
-            discrpancy_Pox = Ps[0]/P_sum - Nox_sum/N_sum
-            discrpancy_Poy = Ps[1]/P_sum - Noy_sum/N_sum
-            discrpancy_Pof = Ps[2]/P_sum - Nof_sum/N_sum
+        while Pox*Poy*Pof > DSP:
+            P_sum = Pox+Poy+Pof
+            discrpancy_Pox = Pox/P_sum - Nox_sum/N_sum
+            discrpancy_Poy = Poy/P_sum - Noy_sum/N_sum
+            discrpancy_Pof = Pof/P_sum - Nof_sum/N_sum
             if equal == 0:
                 if discrpancy_Pox >= discrpancy_Poy and discrpancy_Pox >= discrpancy_Pof and index_Pox < len(values_Pox):
                     index_Pox += 1
-                    Ps[0] = values_Pox[index_Pox]
+                    Pox = values_Pox[index_Pox]
                 elif discrpancy_Poy >= discrpancy_Pox and discrpancy_Poy >= discrpancy_Pof and index_Poy < len(values_Poy):
                     index_Poy += 1
-                    Ps[1] = values_Poy[index_Poy]
+                    Poy = values_Poy[index_Poy]
                 elif discrpancy_Pof >= discrpancy_Pox and discrpancy_Pof >= discrpancy_Poy and index_Pof < len(values_Pof):
                     index_Pof += 1
-                    Ps[2] = values_Pof[index_Pof]
+                    Pof = values_Pof[index_Pof]
             else:
                 if discrpancy_Pox >= discrpancy_Poy and index_Pox < len(values_Pox):
                     index_Pox += 1
                     index_Poy += 1
-                    Ps[0] = values_Pox[index_Pox]
-                    Ps[1] = values_Pox[index_Poy]
-                    if math.prod(Ps) < DSP:
+                    Pox = values_Pox[index_Pox]
+                    Poy = values_Pox[index_Poy]
+                    if Pox*Poy*Pof < DSP:
                         if index_Pof != 0:
-                            if Ps[0]*Ps[1]*values_Pof[index_Pof-1] <= DSP:
-                                Ps[2] = values_Pof[index_Pof-1]
+                            if Pox*Poy*values_Pof[index_Pof-1] <= DSP:
+                                Pof = values_Pof[index_Pof-1]
                 elif discrpancy_Pof >= discrpancy_Pox and index_Pof < len(values_Pof):
                     index_Pof += 1
                     Ps[2] = values_Pof[index_Pof]
-    return Ps   
+    return Pox, Poy, Pof   
 
 def find_possible_tiling(N, P):
     T_temp = []
