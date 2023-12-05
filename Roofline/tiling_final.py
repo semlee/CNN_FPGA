@@ -62,6 +62,10 @@ def find_unrolling(Nox,Noy,Nof,DSP):
                     index_Poy += 1
                     Ps[0] = values_Pox[index_Pox]
                     Ps[1] = values_Pox[index_Poy]
+                    if math.prod(Ps) < DSP:
+                        if index_Pof != 0:
+                            if Ps[0]*Ps[1]*values_Pof[index_Pof-1] <= DSP:
+                                Ps[2] = values_Pof[index_Pof-1]
                 elif discrpancy_Pof >= discrpancy_Pox and index_Pof < len(values_Pof):
                     index_Pof += 1
                     Ps[2] = values_Pof[index_Pof]
