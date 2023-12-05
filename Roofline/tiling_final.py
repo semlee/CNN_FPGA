@@ -133,6 +133,7 @@ def tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky,
     switched = np.array([0] * CONVs)
     switched_temp = np.array([0] * CONVs)
     bits_BUF_px_wt = max(words_px_low) + max(words_wt_high)
+    print(f'Initial buffer size fully buffering weights for every layer: {bits_BUF_px_wt}\n')
     while True:
         Toy_temp = np.array(Toy)
         Tof_temp = np.array(Tof)
@@ -158,31 +159,33 @@ def tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky,
             break
     max_words_px = max(words_px)
     max_words_wt = max(words_wt)
+    print(f'Optimized buffer size: {max_words_px + max_words_wt}\n')
     Tix = (Tox-1)*S + Nkx
     for L in range (CONVs):
         if switched[L] == 1:
             for i in range(len(Tofs[L])):
                 Tiy = (Noy-1)*S + Nky
-                if Tix[L] * Tiy[L] * Tif[L] + Tox[L] * Toy[L] * Tofs[L][i] <= max_words_px and Tofs[L][i] * Tif[L] * Tkx[L] * Tky[L] <= max_words_wt:
+                if Tix[L] * Tiy[L] * Tif[L] + Tox[L] * Toy[L] * Tofs[L][i] * pixel_datawidth <= max_words_px and Tofs[L][i] * Tif[L] * Tkx[L] * Tky[L] * weight_datawidth <= max_words_wt:
                     Tof[L] = Tofs[L][i]
                 else:
                     break
         else:
             for i in range(len(Toys[L])):
                 Tiy = (Toys[L][i]-1)*S + Nky
-                if Tix[L] * Tiy[L] * Tif[L] + Tox[L] * Tofs[L][i] * Tof[L] <= max_words_px:
+                if Tix[L] * Tiy[L] * Tif[L] + Tox[L] * Toys[L][i] * Tof[L] * pixel_datawidth<= max_words_px:
                     Toy[L] = Toys[L][i]
                 else:
                     break
+    print(f'Final Tiling Variables: \nToy - {Toy}\nTof - {Tof}\n')
     return
 
 def optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP):
     (Pox, Poy, Pof) = find_unrolling(Nox,Noy,Nof,DSP)
-    print(Pox, Poy,Pof)
     tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S)
 
-pixel_datawidth = 1
-weight_datawidth = 1
+## Inputs
+pixel_datawidth = 16
+weight_datawidth = 16
 Nox = np.array([224,224,112,112,56,56,56,28,28,28,14,14,14])
 Noy = np.array([224,224,112,112,56,56,56,28,28,28,14,14,14])
 Nof = np.array([64,64,128,128,256,256,256,512,512,512,512,512,512])
