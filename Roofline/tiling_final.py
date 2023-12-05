@@ -2,26 +2,29 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 
+## finds all factors of a nubmer other than 1, from largest to smallest
 def find_factors(number):
     factors = []
     for i in range(2, number + 1):
         if number % i == 0:
             factors.append(i)
-    return factors
+    return factors[::-1]
 
+## finds the greatest common factor among the nubmbers in list N
 def find_greatest_common_factor(N):
     current_gcd = N[0]
     for num in N[1:]:
         current_gcd = math.gcd(current_gcd, num)
     return current_gcd
 
+## finds the unrolling factors Pox, Poy, Pof
 def find_unrolling(Nox,Noy,Nof,DSP):
     Pox = find_greatest_common_factor(Nox)
     Poy = find_greatest_common_factor(Noy)
     Pof = find_greatest_common_factor(Nof)
-    values_Pox = (find_factors(Pox))[::-1]
-    values_Poy = (find_factors(Poy))[::-1]
-    values_Pof = (find_factors(Pof))[::-1]
+    values_Pox = (find_factors(Pox))
+    values_Poy = (find_factors(Poy))
+    values_Pof = (find_factors(Pof))
     Nox_sum = sum(Nox)
     Noy_sum = sum(Noy)
     Nof_sum = sum(Nof)
@@ -128,9 +131,9 @@ def tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky,
     words_px = np.array(words_px_low)
     words_wt = np.array(words_wt_high)
     
-    Toy = np.array(Toy_low)
-    Tof = np.array(Tof_high)
-    switched = np.array([0] * CONVs)
+    Toy = np.array(Toy_low) # Assume that pixels are buffered as little as possible (minimal Toy)
+    Tof = np.array(Tof_high) # Assume that all weights are buffered (Tof = Nof)
+    switched = np.array([0] * CONVs) # Keep track of layers where Pixels, instead of weights, should be buffered
     switched_temp = np.array([0] * CONVs)
     bits_BUF_px_wt = max(words_px_low) + max(words_wt_high)
     print(f'Initial buffer size fully buffering weights for every layer: {bits_BUF_px_wt}\n')
@@ -142,14 +145,14 @@ def tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky,
         words_px_max = max(words_px_temp)
         words_wt_max = max(words_wt_temp)
         bits_BUF_px_wt = words_px_max + words_wt_max
-        for L in range(CONVs):
+        for L in range(CONVs): # find all layers contributing to current max(words_wt), make them fully buffer pixels instead
             if words_wt_temp[L] == words_wt_max:
                 words_px_temp[L] = words_px_high[L] 
                 Toy_temp[L] = Toy_high[L]
                 words_wt_temp[L] = words_wt_low[L]
                 Tof_temp[L] = Tof_low[L]
                 switched_temp[L] = 1
-        if max(words_px_temp) + max(words_wt_temp) < bits_BUF_px_wt:
+        if max(words_px_temp) + max(words_wt_temp) < bits_BUF_px_wt: # if resulting total buffer size is less than before, keep the switched results
             words_px = np.array(words_px_temp)
             words_wt = np.array(words_wt_temp)
             Toy = np.array(Toy_temp)
@@ -161,7 +164,7 @@ def tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky,
     max_words_wt = max(words_wt)
     print(f'Optimized buffer size: {max_words_px + max_words_wt}\n')
     Tix = (Tox-1)*S + Nkx
-    for L in range (CONVs):
+    for L in range (CONVs): # maximize the T variable that is less than N for each layer without requiring extra buffer space
         if switched[L] == 1:
             for i in range(len(Tofs[L])):
                 Tiy = (Noy-1)*S + Nky
