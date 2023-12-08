@@ -83,15 +83,6 @@ def find_possible_tiling(N, P):
         if T+P > N:
             break
         T += P
-    num = len(T_temp) - len(Ts)
-    ite = 0
-    while len(Ts) < 4:
-        if ite == len(T_temp):
-            break
-        ite += 1
-        if min(T_temp)!= float('inf'):
-            Ts.append(P+P*T_temp.index(min(T_temp)))
-            T_temp[T_temp.index(min(T_temp))] = float('inf')
     return np.array(Ts)
         
 def tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S):
@@ -127,7 +118,7 @@ def tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky,
     Tiy = (Toy_low-1)*S + Nky
     words_px_low = Tix * Tiy * Tif + Tox * Toy_low * Tof_high * pixel_datawidth
     words_wt_high = Tof_high * Tif * Tkx * Tky * weight_datawidth
-    
+
     words_px = np.array(words_px_low)
     words_wt = np.array(words_wt_high)
     
@@ -179,12 +170,27 @@ def tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky,
                     Toy[L] = Toys[L][i]
                 else:
                     break
-    print(f'Final Tiling Variables: \nToy - {Toy}\nTof - {Tof}\n')
-    return
+#     print(f'Final Tiling Variables: \nToy - {Toy}\nTof - {Tof}\n')
+    return words_px_high, words_wt_high, max(words_px), max(words_wt), words_px_low, words_wt_low
 
 def optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP):
     (Pox, Poy, Pof) = find_unrolling(Nox,Noy,Nof,DSP)
-    tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S)
+    (words_px, words_wt, max_px, max_wt, words_px_low, words_wt_low) = tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S)
+    hista(words_px, words_wt, max_px, max_wt, words_px_low, words_wt_low)
+    
+def hista(words_px,words_wt, max_px, max_wt, words_px_low, words_wt_low):
+    indices = np.arange(len(words_px))
+    plt.figure(figsize=(12, 8))
+    plt.bar(indices - 0.3, words_px, width=0.2, label='all input pixel bits', color='red')
+    plt.bar(indices - 0.1, words_px_low, width=0.2, label='pixel buffer lower bound', color='pink')
+    plt.bar(indices + 0.1, words_wt, width=0.2, label='all weight bits', color='blue')
+    plt.bar(indices + 0.3, words_wt_low, width=0.2, label='weight buffer lower bound', color='dodgerblue')
+    plt.title('Bar Chart Comparing Two Lists')
+    plt.xticks(indices, [f"Layer{i+1}" for i in range(len(words_px))])
+    plt.legend()
+    plt.axhline(y=max_px, color='r', linestyle='--')
+    plt.axhline(y=max_wt, color='b', linestyle='--')
+    plt.show()
 
 ## Inputs
 pixel_datawidth = 16
