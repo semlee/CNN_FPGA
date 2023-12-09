@@ -25,49 +25,64 @@ def find_unrolling(Nox,Noy,Nof,DSP):
     values_Pox = (find_factors(Pox))
     values_Poy = (find_factors(Poy))
     values_Pof = (find_factors(Pof))
+    
+    Pox_temp = np.array(values_Pox)
+    Poy_temp = np.array(values_Poy)
+    Pof_temp = np.array(values_Pof)
+    
     Nox_sum = sum(Nox)
     Noy_sum = sum(Noy)
     Nof_sum = sum(Nof)
-    N_sum = Nox_sum+Noy_sum+Nof_sum
-    index_Pox = 0
-    index_Poy = 0
-    index_Pof = 0
+    N_sum = Nox_sum + Noy_sum + Nof_sum
+    
     if np.array_equal(Nox,Noy):
         equal = 1
     else:
         equal = 0
     
-    if Pox*Poy*Pof <= DSP:
-        return Pox, Poy, Pof
-    else: 
-        while Pox*Poy*Pof > DSP:
-            P_sum = Pox+Poy+Pof
-            discrpancy_Pox = Pox/P_sum - Nox_sum/N_sum
-            discrpancy_Poy = Poy/P_sum - Noy_sum/N_sum
-            discrpancy_Pof = Pof/P_sum - Nof_sum/N_sum
-            if equal == 0:
-                if discrpancy_Pox >= discrpancy_Poy and discrpancy_Pox >= discrpancy_Pof and index_Pox < len(values_Pox):
-                    index_Pox += 1
-                    Pox = values_Pox[index_Pox]
-                elif discrpancy_Poy >= discrpancy_Pox and discrpancy_Poy >= discrpancy_Pof and index_Poy < len(values_Poy):
-                    index_Poy += 1
-                    Poy = values_Poy[index_Poy]
-                elif discrpancy_Pof >= discrpancy_Pox and discrpancy_Pof >= discrpancy_Poy and index_Pof < len(values_Pof):
-                    index_Pof += 1
-                    Pof = values_Pof[index_Pof]
-            else:
-                if discrpancy_Pox >= discrpancy_Poy and index_Pox < len(values_Pox):
-                    index_Pox += 1
-                    index_Poy += 1
-                    Pox = values_Pox[index_Pox]
-                    Poy = values_Pox[index_Poy]
-                    if Pox*Poy*Pof < DSP:
-                        if index_Pof != 0:
-                            if Pox*Poy*values_Pof[index_Pof-1] <= DSP:
-                                Pof = values_Pof[index_Pof-1]
-                elif discrpancy_Pof >= discrpancy_Pox and index_Pof < len(values_Pof):
-                    index_Pof += 1
-                    Ps[2] = values_Pof[index_Pof]
+    min_cycles = float('inf')
+    optimals = []
+    for x in range (len(Pox_temp)):
+        for y in range (len(Poy_temp)):
+            for f in range (len(Pof_temp)):
+                if Pox_temp[x] * Poy_temp[y] * Pof_temp[f] > DSP:
+                    break      
+                cycles = 0
+                for L in range (len(Nof)):
+                    cycles += (Nox[L]/Pox_temp[x])*(Noy[L]/Poy_temp[y])*(Nof[L]/Pof_temp[f])
+                if cycles < min_cycles:
+                    min_cycles = cycles
+                    optimals = [[Pox_temp[x], Poy_temp[y], Pof_temp[f]]]
+                elif cycles == min_cycles:
+                    optimals.append([Pox_temp[x], Poy_temp[y], Pof_temp[f]])
+    min_discrepancy = float('inf')
+    Pox = 0
+    for i in range (len(optimals)):
+        if equal == 1:
+            if optimals[i][0] != optimals[i][1]:
+                continue
+        P_sum = sum(optimals[i])
+        discrpancy_Pox = optimals[i][0]/P_sum - Nox_sum/N_sum
+        discrpancy_Poy = optimals[i][1]/P_sum - Noy_sum/N_sum
+        discrpancy_Pof = optimals[i][2]/P_sum - Nof_sum/N_sum
+        overall_dis = max(discrpancy_Pox, discrpancy_Poy, discrpancy_Pof)
+        if overall_dis < min_discrepancy:
+            Pox = optimals[i][0]
+            Poy = optimals[i][1]
+            Pof = optimals[i][2]
+            min_discrepancy = overall_dis
+    if Pox == 0:
+        for i in range (len(optimals)):
+            P_sum = sum(optimals[i])
+            discrpancy_Pox = optimals[i][0]/P_sum - Nox_sum/N_sum
+            discrpancy_Poy = optimals[i][1]/P_sum - Noy_sum/N_sum
+            discrpancy_Pof = optimals[i][2]/P_sum - Nof_sum/N_sum
+            overall_dis = max(discrpancy_Pox, discrpancy_Poy, discrpancy_Pof)
+            if overall_dis < min_discrepancy:
+                Pox = optimals[i][0]
+                Poy = optimals[i][1]
+                Pof = optimals[i][2]
+                min_discrepancy = overall_dis
     return Pox, Poy, Pof   
 
 def find_possible_tiling(N, P):
@@ -136,14 +151,16 @@ def tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky,
         words_px_max = max(words_px_temp)
         words_wt_max = max(words_wt_temp)
         bits_BUF_px_wt = words_px_max + words_wt_max
-        for L in range(CONVs): # find all layers contributing to current max(words_wt), make them fully buffer pixels instead
+        for L in range(CONVs): 
+            # find all layers contributing to current max(words_wt), make them fully buffer pixels instead
             if words_wt_temp[L] == words_wt_max:
                 words_px_temp[L] = words_px_high[L] 
                 Toy_temp[L] = Toy_high[L]
                 words_wt_temp[L] = words_wt_low[L]
                 Tof_temp[L] = Tof_low[L]
                 switched_temp[L] = 1
-        if max(words_px_temp) + max(words_wt_temp) < bits_BUF_px_wt: # if resulting total buffer size is less than before, keep the switched results
+        if max(words_px_temp) + max(words_wt_temp) < bits_BUF_px_wt:
+            # if resulting total buffer size is less than before, keep the switched results
             words_px = np.array(words_px_temp)
             words_wt = np.array(words_wt_temp)
             Toy = np.array(Toy_temp)
@@ -155,12 +172,14 @@ def tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky,
     max_words_wt = max(words_wt)
     print(f'Optimized buffer size: {max_words_px + max_words_wt}\n')
     Tix = (Tox-1)*S + Nkx
-    for L in range (CONVs): # maximize the T variable that is less than N for each layer without requiring extra buffer space
+    for L in range (CONVs): 
+        # maximize the T variable that is less than N for each layer without requiring extra buffer space
         if switched[L] == 1:
             for i in range(len(Tofs[L])):
                 Tiy = (Noy-1)*S + Nky
-                if Tix[L] * Tiy[L] * Tif[L] + Tox[L] * Toy[L] * Tofs[L][i] * pixel_datawidth <= max_words_px and Tofs[L][i] * Tif[L] * Tkx[L] * Tky[L] * weight_datawidth <= max_words_wt:
-                    Tof[L] = Tofs[L][i]
+                if Tix[L] * Tiy[L] * Tif[L] + Tox[L] * Toy[L] * Tofs[L][i] * pixel_datawidth <= max_words_px:
+                    if Tofs[L][i] * Tif[L] * Tkx[L] * Tky[L] * weight_datawidth <= max_words_wt:
+                        Tof[L] = Tofs[L][i]
                 else:
                     break
         else:
@@ -170,13 +189,13 @@ def tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky,
                     Toy[L] = Toys[L][i]
                 else:
                     break
-#     print(f'Final Tiling Variables: \nToy - {Toy}\nTof - {Tof}\n')
-    return words_px_high, words_wt_high, max(words_px), max(words_wt), words_px_low, words_wt_low
+    print(f'Final Tiling Variables: \nToy - {Toy}\nTof - {Tof}\n')
+    return [words_px_high, words_wt_high, max(words_px), max(words_wt), words_px_low, words_wt_low]
 
 def optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP):
     (Pox, Poy, Pof) = find_unrolling(Nox,Noy,Nof,DSP)
-    (words_px, words_wt, max_px, max_wt, words_px_low, words_wt_low) = tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S)
-    hista(words_px, words_wt, max_px, max_wt, words_px_low, words_wt_low)
+    output = tiling(Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S)
+    hista(*output)
     
 def hista(words_px,words_wt, max_px, max_wt, words_px_low, words_wt_low):
     indices = np.arange(len(words_px))
