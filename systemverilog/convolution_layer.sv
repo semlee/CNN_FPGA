@@ -1,15 +1,15 @@
 `timescale 1ns/1ps
 
 module mac_unit (
-    input clk, rstn,
+    input clk, rst_n,
     input wire signed [31:0] input_fm, // Operand A
     input wire signed [31:0] weight, // Operand B
-    inout wire signed [31:0] output_fm // Result (accumulated product)
+    output logic signed [31:0] output_fm // Result (accumulated product)
 );
   reg signed [31:0] product; // Intermediate product
   
-  always @(posedge clk or negedge rstn) begin
-    if (!rstn) begin
+  always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
       product <= 0; // Reset the product on reset
     end 
     else begin
@@ -23,8 +23,9 @@ endmodule
 
 module max_pool (
     input wire signed [31:0] in_data [3:0][3:0],
-    output wire signed [31:0] out_data [1:0][1:0]
+    output logic signed [31:0] out_data [1:0][1:0]
 );
+    logic [31:0] max_val;
     always_comb begin
         max_val = (in_data[0][0] > in_data[0][1]) ? in_data[0][0] : in_data[0][1];
         max_val = (max_val > in_data[1][0]) ? max_val : in_data[1][0];
@@ -51,8 +52,8 @@ endmodule
 
 module relu (
     input wire signed [31:0] in_data [1:0][1:0],
-    output wire signed [31:0] out_data [1:0][1:0]
-)
+    output logic signed [31:0] out_data [1:0][1:0]
+);
     always_comb begin
         out_data[0][0] = (in_data[0][0] > 0) ? in_data[0][0] : 0;
         out_data[0][1] = (in_data[0][1] > 0) ? in_data[0][1] : 0;
