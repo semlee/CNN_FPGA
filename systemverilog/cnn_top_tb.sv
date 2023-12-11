@@ -1,85 +1,58 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 2023/12/10 15:15:46
-// Design Name: 
-// Module Name: cnn_top_tb
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
 
-module cnn_top_tb;
+module tb_cnn_top;
 
-    reg clk, rst_n;
-    reg [31:0] input_image [0:7] [0:31];
-    reg  [31:0] filter [0:7] [0:31];
-    wire [31:0] output_image [0:7] [0:31];
+  reg clk, rst_n, conv_run;
+  reg signed [31:0] input_image [0:31] [0:31];
+  reg signed [31:0] filter [0:31] [0:31];
+  reg [31:0] output_image [0:31] [0:31];
 
-    // Add other necessary signals here
+  // Instantiate the design
+  cnn_top dut (
+    .clk(clk),
+    .rst_n(rst_n),
+    .input_image(input_image),
+    .filter(filter),
+    .output_image(output_image)
+  );
 
-    // Instantiate your design
-    cnn_top dut (
-        .clk(clk),
-        .rst_n(rst_n),
-        .input_image(input_image),
-        .filter(filter),
-        .output_image(output_image)
-        // Add other signal connections
-    );
+  // Clock generation
+  initial begin
+    clk = 0;
+    forever #5 clk = ~clk;
+  end
 
-    // Clock generation
-    initial begin
-        clk = 0;
-        forever #5 clk = ~clk;
+  // Reset generation
+  initial begin
+    rst_n = 0;
+    #10 rst_n = 1;
+  end
+
+  // Stimulus generation
+  initial begin
+    conv_run = 1; // Start convolution
+
+    // Fill input_image with random values between 0 and 1
+    foreach (input_image[i, j]) begin
+      foreach (input_image[i, j]) begin
+        input_image[i][j] = $rtoi($random) / $pow(2, $bits(input_image[i][j]));
+      end
     end
 
-    // Initial stimulus
-    initial begin
-        // Apply reset
-        rst_n = 0;
-        #10;
-
-        // Deassert reset
-        rst_n = 1;
-        #10;
-
-        // Example input data
-        for (int i = 0; i < 8; i = i + 1) begin
-            for (int j = 0; j < 32; j = j + 1) begin
-                input_image[i][j] = $random; // Replace with your actual input data
-            end
-        end
-
-        // Example filter data
-        for (int i = 0; i < 8; i = i + 1) begin
-            for (int j = 0; j < 32; j = j + 1) begin
-                filter[i][j] = $random; // Replace with your actual filter data
-            end
-        end
-
-        // Wait for some cycles before checking the output
-        #100;
-
-        // Print the output for verification
-        $display("Output Image: %p", output_image);
-
-        // Finish simulation after some time
-        #1000 $finish;
+    // Fill filter with random values between 0 and 1
+    foreach (filter[i, j]) begin
+      foreach (filter[i, j]) begin
+        filter[i][j] = $rtoi($random) / $pow(2, $bits(filter[i][j]));
+      end
     end
 
-    // Add other necessary tasks for monitoring or checking results
+    // Wait for a few clock cycles
+    #10000;
+
+    // Add any checks/assertions here to verify the results
+    
+    $stop; // Stop simulation
+  end
 
 endmodule
-
 
