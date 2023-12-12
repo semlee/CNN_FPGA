@@ -178,7 +178,7 @@ def tiling(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx,
     bits_BUF_px_wt = max(words_px_low) + max(words_wt_high)
     initial_buffer_size = bits_BUF_px_wt
     
-    while True:
+    for Layer in range (0,CONVs):
         Toy_temp = np.array(Toy)
         Tof_temp = np.array(Tof)
         words_px_temp = np.array(words_px)
@@ -194,7 +194,7 @@ def tiling(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx,
                 words_wt_temp[L] = words_wt_low[L]
                 Tof_temp[L] = Tof_low[L]
                 switched_temp[L] = 1
-        if max(words_px_temp) + max(words_wt_temp) < bits_BUF_px_wt:
+        if max(words_px_temp) + max(words_wt_temp) <= bits_BUF_px_wt:
             # if resulting total buffer size is less than before, keep the switched results
             words_px = np.array(words_px_temp)
             words_wt = np.array(words_wt_temp)
@@ -259,8 +259,9 @@ def tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy
     switched = np.array([0] * CONVs) # Keep track of layers where Pixels, instead of weights, should be buffered
     switched_temp = np.array([0] * CONVs)
     bits_BUF_px_wt = max(words_px_low) + max(words_wt_high)
+    initial_buffer_size = bits_BUF_px_wt
     
-    while True:
+    for Layer in range (0,CONVs):
         Tox_temp = np.array(Tox)
         Toy_temp = np.array(Toy)
         Tof_temp = np.array(Tof)
@@ -291,7 +292,7 @@ def tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy
             
     if histogram == 1:
         hista(words_px_high, words_wt_high, max(words_px), max(words_wt), words_px_low, words_wt_low)
-    return Tox, Toy, Tof, bits_BUF_px_wt
+    return Tox, Toy, Tof, bits_BUF_px_wt, initial_buffer_size
     
 ## Produces the final output of the optimized design space search
 def optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP, fpga_buffer_size):
@@ -325,7 +326,7 @@ def optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S,
         if ox_full == 1: # Retrieves tililng variables for this set of unrolling variables if Tox = Nox
             (Tox, Toy, Tof, buffer_size, initial_buffer_size) = tiling(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, fpga_buffer_size, 1)
         else: # Retrieves tililng variables for this set of unrolling variables if Tox < Nox
-            (Tox, Toy, Tof, buffer_size) = tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, fpga_buffer_size, 1)
+            (Tox, Toy, Tof, buffer_size, initial_buffer_size) = tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, fpga_buffer_size, 1)
         print(f'Pox: {Pox}\nPoy: {Poy}\nPof: {Pof}')
         print(f'Tox: {Tox}\nToy: {Toy}\nTof: {Tof}\nInitial Buffer Size: {initial_buffer_size}\nFinal Buffer Size: {buffer_size}')
         
@@ -344,7 +345,7 @@ def hista(words_px,words_wt, max_px, max_wt, words_px_low, words_wt_low):
     plt.show()
 
 ## Inputs
-fpga_buffer_size = 100000
+fpga_buffer_size = 5000000
 pixel_datawidth = 16
 weight_datawidth = 16
 Nox = np.array([224,224,112,112,56,56,56,28,28,28,14,14,14])
