@@ -278,7 +278,7 @@ def tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy
                 words_wt_temp[L] = words_wt_low[L]
                 Tof_temp[L] = Tof_low[L]
                 switched_temp[L] = 1
-        if max(words_px_temp) + max(words_wt_temp) < bits_BUF_px_wt:
+        if max(words_px_temp) + max(words_wt_temp) <= bits_BUF_px_wt:
             # if resulting total buffer size is less than before, keep the switched results
             words_px = np.array(words_px_temp)
             words_wt = np.array(words_wt_temp)
