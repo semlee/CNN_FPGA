@@ -319,7 +319,7 @@ def optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S,
                 min_buffer = output[3]
             unrolling_id += 1 # move on to the next set of unrolling variables
     if len(optimals) == 0: # if not able to find design variables that result in a smaller buffer than the available BRAM
-        print(f'An FPGA board with at least {min_buffer/(8*1024*1024)} Mb BRAM is required')
+        print(f'An FPGA board with at least {min_buffer/(1000000)} Mbit BRAM is required')
     else:
         (Pox, Poy, Pof) = find_best_unrolling(Nox, Noy, Nof, optimals) # find the set of unrolling variable where Pox:Poy:Pof is as similar to Nox:Noy:Nof as possible
         if ox_full == 1: # Retrieves tililng variables for this set of unrolling variables if Tox = Nox
@@ -344,7 +344,7 @@ def hista(words_px,words_wt, max_px, max_wt, words_px_low, words_wt_low):
     plt.show()
 
 ## Inputs
-fpga_buffer_size = 5160960
+fpga_buffer_size = 100000
 pixel_datawidth = 16
 weight_datawidth = 16
 Nox = np.array([224,224,112,112,56,56,56,28,28,28,14,14,14])
