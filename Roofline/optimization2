@@ -19,17 +19,16 @@ def find_greatest_common_factor(N):
     return current_gcd
 
 ## finds the possible unrolling factors Pox, Poy, Pof that minimize latecy (intra_tiling_cycles x inter_tiling_cycles)
-def find_unrolling(Nox,Noy,Nof,DSP):
+def find_unrolling(Nox,Noy,Nof,DSP, Pox_upperbound, Poy_upperbound, Pof_upperbound):
     Pox = find_greatest_common_factor(Nox)
     Poy = find_greatest_common_factor(Noy)
     Pof = find_greatest_common_factor(Nof)
     values_Pox = (find_factors(Pox))
     values_Poy = (find_factors(Poy))
     values_Pof = (find_factors(Pof))  
-    Pox_temp = np.array(values_Pox)
-    Poy_temp = np.array(values_Poy)
-    Pof_temp = np.array(values_Pof)
-    print(Pox_temp[-1])
+    Pox_temp = np.array([x for x in values_Pox if x <= Pox_upperbound])
+    Poy_temp = np.array([y for y in values_Poy if y <= Poy_upperbound])
+    Pof_temp = np.array([f for f in values_Pof if f <= Pof_upperbound])
 
     if np.array_equal(Nox,Noy):
         equal = 1
@@ -329,11 +328,12 @@ def tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy
     return Tox, Toy, Tof, bits_BUF_px_wt, initial_buffer_size
     
 ## Produces the final output of the optimized design space search
-def optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP, fpga_buffer_size):
-    optimals_tmp = find_unrolling(Nox,Noy,Nof,DSP) # finds all possible sets of unrolling variables that minimize latency
+def optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP, fpga_buffer_size, Pox_upperbound, Poy_upperbound, Pof_upperbound):
+    optimals_tmp = find_unrolling(Nox,Noy,Nof,DSP, Pox_upperbound, Poy_upperbound, Pof_upperbound) # finds all possible sets of unrolling variables that minimize latency
     if optimals_tmp[0] == 0:
         print(f'An FPGA board with at least {optimals_tmp[1]} DSP units is required.')
         return
+    #optimals_tmp = [[3,3,3]]
     optimals = [] # used to store filtered unrolling variables
     unrolling_id = 0 # index of unrolling variable currently under evaluation
     ox_full = 1 # 1 if Tox = Nox, 0 otherwise
@@ -394,4 +394,7 @@ Nkx = np.array([3,3,3,3,3,3,3,3,3,3,3,3,3])
 Nky = np.array([3,3,3,3,3,3,3,3,3,3,3,3,3])
 Nif = np.array([3,64,128,128,256,256,256,512,512,512,512,512,512])
 DSP = 220
-optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP, fpga_buffer_size)
+Pox_upperbound = 3
+Poy_upperbound = 3
+Pof_upperbound = 3
+optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP, fpga_buffer_size, Pox_upperbound, Poy_upperbound, Pof_upperbound)
