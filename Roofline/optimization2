@@ -118,7 +118,7 @@ def find_possible_tiling(N, P):
         
 ## When the on-board BRAM is large enough to support Tox = Nox
 ## Finds the tiling variable that minimizes the buffer size while minimizing DRAM accesses
-def tiling(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, fpga_buffer_size, histogram):
+def tiling(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, fpga_buffer_size, final):
     Tkx = Nkx
     Tky = Nky
     Tif = Nif
@@ -189,12 +189,12 @@ def tiling(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx,
             break
     max_words_px = max(words_px)
     max_words_wt = max(words_wt)
-    Tix = (Tox-1)*S + Nkx
+    Tix = (Nox-1)*S + Nkx
     for L in range (CONVs): 
         # maximize the T variable that is less than N for each layer without requiring extra buffer space
         if switched[L] == 1:
+            Tiy = (Noy-1)*S + Nky
             for i in range(len(Tofs[L])):
-                Tiy = (Noy-1)*S + Nky
                 if (Tix[L] * Tiy[L] * Tif[L] + Tox[L] * Toy[L] * Tofs[L][i]) * pixel_datawidth <= max_words_px:
                     if Tofs[L][i] * Tif[L] * Tkx[L] * Tky[L] * weight_datawidth <= max_words_wt:
                         Tof[L] = Tofs[L][i]
@@ -207,13 +207,13 @@ def tiling(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx,
                     Toy[L] = Toys[L][i]
                 else:
                     break
-    if histogram == 1:
+    if final == 1:
         hista(words_px_high, words_wt_high, max(words_px), max(words_wt), words_px_low, words_wt_low)
     return Tox, Toy, Tof, bits_BUF_px_wt, initial_buffer_size
 
 ## When the on-board BRAM is not large enough to support Tox = Nox
 ## Finds the tiling variable that minimizes the buffer size while minimizing DRAM accesses
-def tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, fpga_buffer_size, histogram):
+def tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, fpga_buffer_size, final):
     Tkx = Nkx
     Tky = Nky
     Tif = Nif
@@ -295,12 +295,12 @@ def tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy
             
     max_words_px = max(words_px)
     max_words_wt = max(words_wt)
-    Tix = (Tox-1)*S + Nkx
     for L in range (CONVs): 
         # maximize the T variable that is less than N for each layer without requiring extra buffer space
         if switched[L] == 1:
+            Tiy = (Noy-1)*S + Nky
+            Tix = (Nox-1)*S + Nkx
             for i in range(len(Tofs[L])):
-                Tiy = (Noy-1)*S + Nky
                 if (Tix[L] * Tiy[L] * Tif[L] + Tox[L] * Toy[L] * Tofs[L][i]) * pixel_datawidth <= max_words_px:
                     if Tofs[L][i] * Tif[L] * Tkx[L] * Tky[L] * weight_datawidth <= max_words_wt:
                         Tof[L] = Tofs[L][i]
@@ -310,6 +310,8 @@ def tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy
             index_x = 0
             index_y = 0
             while True:
+                Tix = (Tox-1)*S + Nkx
+                Tiy = (Toy-1)*S + Nky
                 fail = 1
                 if index_x + 1 < len(Toxs[L]):
                     if (Tix[L] * Tiy[L] * Tif[L] + Toxs[L][index_x+1] * Toy[L] * Tof[L]) * pixel_datawidth <= max_words_px:
@@ -323,7 +325,7 @@ def tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy
                         Toy[L] = Toys[L][index_y]
                 if fail == 1:
                     break
-    if histogram == 1:
+    if final == 1:
         hista(words_px_high, words_wt_high, max(words_px), max(words_wt), words_px_low, words_wt_low)
     return Tox, Toy, Tof, bits_BUF_px_wt, initial_buffer_size
     
@@ -363,12 +365,15 @@ def optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S,
         (Pox, Poy, Pof) = find_best_unrolling(Nox, Noy, Nof, optimals) # find the set of unrolling variable where Pox:Poy:Pof is as similar to Nox:Noy:Nof as possible
         if ox_full == 1: # Retrieves tililng variables for this set of unrolling variables if Tox = Nox
             (Tox, Toy, Tof, buffer_size, initial_buffer_size) = tiling(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, fpga_buffer_size, 1)
-            print('opt')
         else: # Retrieves tililng variables for this set of unrolling variables if Tox < Nox
             (Tox, Toy, Tof, buffer_size, initial_buffer_size) = tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, fpga_buffer_size, 1)
-            print('subopt')
         print(f'Pox: {Pox}\nPoy: {Poy}\nPof: {Pof}')
-        print(f'Tox: {Tox}\nToy: {Toy}\nTof: {Tof}\nInitial Buffer Size: {initial_buffer_size/1000000}Mbits\nFinal Buffer Size: {buffer_size/1000000}Mbits')
+        print(f'Tox: {Tox}\nToy: {Toy}\nTof: {Tof}\nAvailable BRAM: {fpga_buffer_size/1000000} MBits\nOptimized Buffer Size: {buffer_size/1000000} Mbits')
+        Tix = (Tox-1)*S + Nkx
+        Tiy = (Toy-1)*S + Nky
+        pixel_BRAM = max((Tix * Tiy * Nif + Tox * Toy * Tof) * pixel_datawidth)/1000000
+        weight_BRAM = max(Tof * Nif * Nkx * Nky * weight_datawidth)/1000000
+        print(f'Pixel BRAM: {pixel_BRAM} Mbits\nWeight BRAM: {weight_BRAM} MBits')
         
 def hista(words_px,words_wt, max_px, max_wt, words_px_low, words_wt_low):
     indices = np.arange(len(words_px))
@@ -385,19 +390,19 @@ def hista(words_px,words_wt, max_px, max_wt, words_px_low, words_wt_low):
     plt.show()
 
 ## Inputs
-fpga_buffer_size = 500000000
+fpga_buffer_size = 100000000
 pixel_datawidth = 16
 weight_datawidth = 16
-Nox = np.array([56,28,14,14,14])
-Noy = np.array([56,28,14,14,14])
-Nof = np.array([96,256,384,384,256])
-S = np.array([4,1,1,1,1])
-Nkx = np.array([11,5,3,3,3])
-Nky = np.array([11,5,3,3,3])
-Nif = np.array([4,96,256,384,384])
-    
-DSP = 220
-Pox_upperbound = 3
-Poy_upperbound = 3
-Pof_upperbound = 3
+Nox = np.array([224,224,112,112,56,56,56,28,28,28,14,14,14])
+Noy = np.array([224,224,112,112,56,56,56,28,28,28,14,14,14])
+Nof = np.array([64,64,128,128,256,256,256,512,512,512,512,512,512])
+S = np.array([1,1,1,1,1,1,1,1,1,1,1,1,1])
+Nkx = np.array([3,3,3,3,3,3,3,3,3,3,3,3,3])
+Nky = np.array([3,3,3,3,3,3,3,3,3,3,3,3,3])
+# Nif = np.array([3,64,128,128,256,256,256,512,512,512,512,512,512])
+Nif = np.array([3,64,64,128,128,256,256,256,512,512,512,512,512])
+DSP = 3200
+Pox_upperbound = 100
+Poy_upperbound = 100
+Pof_upperbound = 100
 optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP, fpga_buffer_size, Pox_upperbound, Poy_upperbound, Pof_upperbound)
