@@ -208,7 +208,7 @@ def tiling(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx,
                 else:
                     break
     if final == 1:
-        hista(words_px_high, words_wt_high, max(words_px), max(words_wt), words_px_low, words_wt_low)
+        hista(words_px_high, words_wt_high, max(words_px), max(words_wt), words_px_low, words_wt_low, pixel_datawidth, weight_datawidth)
     return Tox, Toy, Tof, bits_BUF_px_wt, initial_buffer_size
 
 ## When the on-board BRAM is not large enough to support Tox = Nox
@@ -326,7 +326,7 @@ def tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy
                 if fail == 1:
                     break
     if final == 1:
-        hista(words_px_high, words_wt_high, max(words_px), max(words_wt), words_px_low, words_wt_low)
+        hista(words_px_high, words_wt_high, max(words_px), max(words_wt), words_px_low, words_wt_low, pixel_datawidth, weight_datawidth)
     return Tox, Toy, Tof, bits_BUF_px_wt, initial_buffer_size
     
 ## Produces the final output of the optimized design space search
@@ -375,34 +375,33 @@ def optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S,
         weight_BRAM = max(Tof * Nif * Nkx * Nky * weight_datawidth)/1000000
         print(f'Pixel BRAM: {pixel_BRAM} Mbits\nWeight BRAM: {weight_BRAM} MBits')
         
-def hista(words_px,words_wt, max_px, max_wt, words_px_low, words_wt_low):
+def hista(words_px,words_wt, max_px, max_wt, words_px_low, words_wt_low, pixel_datawidth, weight_datawidth):
     indices = np.arange(len(words_px))
     plt.figure(figsize=(12, 8))
-    plt.bar(indices - 0.3, words_px, width=0.2, label='all input pixel bits', color='red')
+    plt.bar(indices - 0.3, words_px, width=0.2, label='all input pixel bits and partially buffered output pixel bits', color='red')
     plt.bar(indices - 0.1, words_px_low, width=0.2, label='pixel buffer lower bound', color='pink')
     plt.bar(indices + 0.1, words_wt, width=0.2, label='all weight bits', color='blue')
     plt.bar(indices + 0.3, words_wt_low, width=0.2, label='weight buffer lower bound', color='dodgerblue')
-    plt.title('Bar Chart Comparing Two Lists')
+    plt.title(f'1 pixel is {pixel_datawidth}-bit, 1 weight is {weight_datawidth}-bit')
     plt.xticks(indices, [f"Layer{i+1}" for i in range(len(words_px))])
+    plt.axhline(y=max_px, color='r', linestyle='--', label='Pixel Buffers')
+    plt.axhline(y=max_wt, color='b', linestyle='--', label='Weight Buffers')
     plt.legend()
-    plt.axhline(y=max_px, color='r', linestyle='--')
-    plt.axhline(y=max_wt, color='b', linestyle='--')
     plt.show()
 
 ## Inputs
-fpga_buffer_size = 5000000
-pixel_datawidth = 4
-weight_datawidth = 4
+fpga_buffer_size = 50000000
+pixel_datawidth = 16
+weight_datawidth = 16
 Nox = np.array([224,224,112,112,56,56,56,28,28,28,14,14,14])
 Noy = np.array([224,224,112,112,56,56,56,28,28,28,14,14,14])
 Nof = np.array([64,64,128,128,256,256,256,512,512,512,512,512,512])
 S = np.array([1,1,1,1,1,1,1,1,1,1,1,1,1])
 Nkx = np.array([3,3,3,3,3,3,3,3,3,3,3,3,3])
 Nky = np.array([3,3,3,3,3,3,3,3,3,3,3,3,3])
-# Nif = np.array([3,64,128,128,256,256,256,512,512,512,512,512,512])
 Nif = np.array([3,64,64,128,128,256,256,256,512,512,512,512,512])
-DSP = 5
-Pox_upperbound = 3
-Poy_upperbound = 3
-Pof_upperbound = 3
+DSP = 3200
+Pox_upperbound = 100
+Poy_upperbound = 100
+Pof_upperbound = 100
 optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP, fpga_buffer_size, Pox_upperbound, Poy_upperbound, Pof_upperbound)
