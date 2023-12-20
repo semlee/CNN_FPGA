@@ -51,7 +51,7 @@ def find_unrolling(Nox,Noy,Nof,DSP, Pox_upperbound, Poy_upperbound, Pof_upperbou
                 elif cycles == min_cycles:
                     optimals.append([Pox_temp[x], Poy_temp[y], Pof_temp[f]]) 
     if len(optimals) == 0:
-        return [0,Pox_temp[-1]*Poy_temp[-1]*Pof_temp[-1]]
+        return 0
     return optimals
 
 ## Finds the best unrolling factors among a set which best minimizes the difference between P*/Psum and N*/Nsum.
@@ -330,8 +330,8 @@ def tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy
 ## Produces the final output of the optimized design space search
 def optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP, fpga_buffer_size, Pox_upperbound, Poy_upperbound, Pof_upperbound):
     optimals_tmp = find_unrolling(Nox,Noy,Nof,DSP, Pox_upperbound, Poy_upperbound, Pof_upperbound) # finds all possible sets of unrolling variables that minimize latency
-    if optimals_tmp[0] == 0:
-        print(f'An FPGA board with at least {optimals_tmp[1]} DSP units is required.')
+    if optimals_tmp == 0:
+        print(f'Unable to find unrolling parameters under the constraints, try loosening upper bounds on them.')
         return
     #optimals_tmp = [[3,3,3]]
     optimals = [] # used to store filtered unrolling variables
@@ -385,16 +385,17 @@ def hista(words_px,words_wt, max_px, max_wt, words_px_low, words_wt_low):
     plt.show()
 
 ## Inputs
-fpga_buffer_size = 100000000
+fpga_buffer_size = 500000000
 pixel_datawidth = 16
 weight_datawidth = 16
-Nox = np.array([224,224,112,112,56,56,56,28,28,28,14,14,14])
-Noy = np.array([224,224,112,112,56,56,56,28,28,28,14,14,14])
-Nof = np.array([64,64,128,128,256,256,256,512,512,512,512,512,512])
-S = np.array([1,1,1,1,1,1,1,1,1,1,1,1,1])
-Nkx = np.array([3,3,3,3,3,3,3,3,3,3,3,3,3])
-Nky = np.array([3,3,3,3,3,3,3,3,3,3,3,3,3])
-Nif = np.array([3,64,128,128,256,256,256,512,512,512,512,512,512])
+Nox = np.array([56,28,14,14,14])
+Noy = np.array([56,28,14,14,14])
+Nof = np.array([96,256,384,384,256])
+S = np.array([4,1,1,1,1])
+Nkx = np.array([11,5,3,3,3])
+Nky = np.array([11,5,3,3,3])
+Nif = np.array([4,96,256,384,384])
+    
 DSP = 220
 Pox_upperbound = 3
 Poy_upperbound = 3
