@@ -391,19 +391,19 @@ def hista(words_px,words_wt, max_px, max_wt, words_px_low, words_wt_low, pixel_d
     plt.legend()
     plt.show()
 
-## Inputs
-fpga_buffer_size = 50000000
-pixel_datawidth = 16
-weight_datawidth = 16
-Nox = np.array([224,224,112,112,56,56,56,28,28,28,14,14,14])
-Noy = np.array([224,224,112,112,56,56,56,28,28,28,14,14,14])
-Nof = np.array([64,64,128,128,256,256,256,512,512,512,512,512,512])
-S = np.array([1,1,1,1,1,1,1,1,1,1,1,1,1])
-Nkx = np.array([3,3,3,3,3,3,3,3,3,3,3,3,3])
-Nky = np.array([3,3,3,3,3,3,3,3,3,3,3,3,3])
-Nif = np.array([3,64,64,128,128,256,256,256,512,512,512,512,512])
-DSP = 3200
-Pox_upperbound = 100
-Poy_upperbound = 100
-Pof_upperbound = 100
+## Inputs provided by the user
+fpga_buffer_size = 50000000 # the available BRAM on the FPGA in bits
+pixel_datawidth = 16 # the datawidth of pixels
+weight_datawidth = 16 # the datawidth of weights
+Nox = np.array([224,224,112,112,56,56,56,28,28,28,14,14,14]) # width of output feature map for each layer
+Noy = np.array([224,224,112,112,56,56,56,28,28,28,14,14,14]) # height of output feature map for each layer
+Nof = np.array([64,64,128,128,256,256,256,512,512,512,512,512,512]) # number of output feature maps for each layer
+S = np.array([1,1,1,1,1,1,1,1,1,1,1,1,1]) # stride of each layer
+Nkx = np.array([3,3,3,3,3,3,3,3,3,3,3,3,3]) # width of kernel for each layer
+Nky = np.array([3,3,3,3,3,3,3,3,3,3,3,3,3]) # height of kernel for each layer
+Nif = np.array([3,64,64,128,128,256,256,256,512,512,512,512,512]) # number of input feature maps
+DSP = 3200 # number of DSP units on FPGA
+Pox_upperbound = 100 # upper bound on unrolling parameter Pox (loop 3)
+Poy_upperbound = 100 # upper bound on unrolling parameter Poy (loop 3)
+Pof_upperbound = 100 # upper bound on unrolling parameter Pof (loop 4)
 optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP, fpga_buffer_size, Pox_upperbound, Poy_upperbound, Pof_upperbound)
