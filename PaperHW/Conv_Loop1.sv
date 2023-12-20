@@ -33,11 +33,11 @@ module Conv_Loop1 #(parameter int kx = 3, Pix = 3, RES=8)(clk,rst_n,weights,pixe
 
 	// Counters
 	reg kernel_counter_enable;
-	reg [$clog2(kx*kx-1+1)-1:0] kernel_weight_index;
-	GenericCounter #(.COUNTER_SIZE(kx*kx-1)) kernel_counter(.clk(clk),.rst_n(rst_n),.enable(kernel_counter_enable),.count(kernel_weight_index));
+	reg [$clog2(kx*kx+1)-1:0] kernel_weight_index;
+	GenericCounter #(.COUNTER_SIZE(kx*kx)) kernel_counter(.clk(clk),.rst_n(rst_n),.enable(kernel_counter_enable),.count(kernel_weight_index));
 
-	assign kernel_loop_done = kernel_weight_index==kx*kx-1;
-	assign kernel_loop_one_cycle_before_done = kernel_weight_index==kx*kx-2;
+	assign kernel_loop_done = kernel_weight_index==kx*kx;
+	assign kernel_loop_one_cycle_before_done = kernel_weight_index==kx*kx-1;
 
 	// register array
 	reg [RES-1:0] shift_reg [0:Pix+1-1];
@@ -144,7 +144,9 @@ module Conv_Loop1 #(parameter int kx = 3, Pix = 3, RES=8)(clk,rst_n,weights,pixe
 					shift_load=1;
 					MAC_ready=1;
 					FIFO_wr_en=1;
+					kernel_counter_enable=1;
 					nxt_state = Load_one_from_buffer;
+					
 					
 				end
 				else begin
@@ -175,11 +177,10 @@ module Conv_Loop1 #(parameter int kx = 3, Pix = 3, RES=8)(clk,rst_n,weights,pixe
 				nxt_state=Load_from_FIFO;
 			end
 			Load_from_FIFO:begin		
-				if(kernel_weight_index==kx*kx-1)begin
+				if(kernel_weight_index==kx*kx)begin
 					// if went through all the weights, which means it takes kx*kx cycles
 					FIFO_clear=1;
 					kernel_counter_enable=1;
-					MAC_ready=1;
 					nxt_state=Load_multiple_from_buffer;
 				end
 				else begin

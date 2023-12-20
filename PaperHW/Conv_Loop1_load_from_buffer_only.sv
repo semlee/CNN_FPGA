@@ -31,18 +31,18 @@ module Conv_Loop1_load_from_buffer_only #(parameter int kx = 3, Pix = 3, RES=8)(
 
 	// Counters
 	reg kernel_counter_enable;
-	reg [$clog2(kx*kx-1+1)-1:0] kernel_weight_index;
-    reg [$clog2(kx-1+1)-1:0] kx_index;
-    reg [$clog2(kx-1+1)-1:0] ky_index;
+	reg [$clog2(kx*kx+1)-1:0] kernel_weight_index;
+    reg [$clog2(kx+1)-1:0] kx_index;
+    reg [$clog2(kx+1)-1:0] ky_index;
     wire kx_done;
-    assign kx_done=kx_index==kx-1;
-	GenericCounter #(.COUNTER_SIZE(kx*kx-1)) kernel_counter(.clk(clk),.rst_n(rst_n),.enable(kernel_counter_enable),.count(kernel_weight_index));
-    GenericCounter #(.COUNTER_SIZE(kx-1)) kx_counter(.clk(clk),.rst_n(rst_n),.enable(kernel_counter_enable),.count(kx_index));
-    GenericCounter #(.COUNTER_SIZE(kx-1)) ky_counter(.clk(clk),.rst_n(rst_n),.enable(kx_done),.count(ky_index));
+    assign kx_done=kx_index==kx;
+	GenericCounter #(.COUNTER_SIZE(kx*kx)) kernel_counter(.clk(clk),.rst_n(rst_n),.enable(kernel_counter_enable),.count(kernel_weight_index));
+    GenericCounter #(.COUNTER_SIZE(kx)) kx_counter(.clk(clk),.rst_n(rst_n),.enable(kernel_counter_enable),.count(kx_index));
+    GenericCounter #(.COUNTER_SIZE(kx)) ky_counter(.clk(clk),.rst_n(rst_n),.enable(kx_done),.count(ky_index));
     
     
-	assign kernel_loop_done = kernel_weight_index==kx*kx-1;
-	assign kernel_loop_one_cycle_before_done = kernel_weight_index==kx*kx-2;
+	assign kernel_loop_done = kernel_weight_index==kx*kx;
+	assign kernel_loop_one_cycle_before_done = kernel_weight_index==kx*kx-1;
 
 	// register array
 	reg [RES-1:0] shift_reg [0:Pix+1-1];
@@ -137,14 +137,15 @@ module Conv_Loop1_load_from_buffer_only #(parameter int kx = 3, Pix = 3, RES=8)(
 				if(pixel_ready&&weight_ready&&kernel_weight_index==0)begin
 					shift_load=1;
 					MAC_ready=1;
+					kernel_counter_enable=1;
 					FIFO_wr_en=1;
 					nxt_state = Load_one_from_buffer;
 				end
-				else if(kernel_weight_index==kx*kx-1)begin
+				else if(kernel_weight_index==kx*kx)begin
 					kernel_counter_enable=1;
 					FIFO_clear=1;
 				end
-                else if(kernel_weight_index>=kx-1)begin
+                else if (kernel_weight_index>=kx) begin
 					shift_load=1;
 					MAC_ready=1;
 					FIFO_wr_en=1;
