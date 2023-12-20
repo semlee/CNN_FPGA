@@ -368,7 +368,9 @@ def optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S,
         else: # Retrieves tililng variables for this set of unrolling variables if Tox < Nox
             (Tox, Toy, Tof, buffer_size, initial_buffer_size) = tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, fpga_buffer_size, 1)
         print(f'Pox: {Pox}\nPoy: {Poy}\nPof: {Pof}')
-        print(f'Tox: {Tox}\nToy: {Toy}\nTof: {Tof}\nAvailable BRAM: {fpga_buffer_size/1000000} MBits\nOptimized Buffer Size: {buffer_size/1000000} Mbits')
+        print(f'Tox: {Tox}\nToy: {Toy}\nTof: {Tof}')
+        print("All other P* parameters are set to 1, and all other T* parameters are set to N*.")
+        print(f'Available BRAM: {fpga_buffer_size/1000000} MBits\nOptimized Buffer Size: {buffer_size/1000000} Mbits')
         Tix = (Tox-1)*S + Nkx
         Tiy = (Toy-1)*S + Nky
         pixel_BRAM = max((Tix * Tiy * Nif + Tox * Toy * Tof) * pixel_datawidth)/1000000
@@ -389,7 +391,7 @@ def hista(words_px,words_wt, max_px, max_wt, words_px_low, words_wt_low, pixel_d
     plt.legend()
     plt.show()
 
-## Inputs, provided by user
+## Inputs
 fpga_buffer_size = 50000000
 pixel_datawidth = 16
 weight_datawidth = 16
