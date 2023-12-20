@@ -29,6 +29,7 @@ def find_unrolling(Nox,Noy,Nof,DSP):
     Pox_temp = np.array(values_Pox)
     Poy_temp = np.array(values_Poy)
     Pof_temp = np.array(values_Pof)
+    print(Pox_temp[-1])
 
     if np.array_equal(Nox,Noy):
         equal = 1
@@ -49,25 +50,9 @@ def find_unrolling(Nox,Noy,Nof,DSP):
                     min_cycles = cycles
                     optimals = [[Pox_temp[x], Poy_temp[y], Pof_temp[f]]]
                 elif cycles == min_cycles:
-                    optimals.append([Pox_temp[x], Poy_temp[y], Pof_temp[f]])
-                    
+                    optimals.append([Pox_temp[x], Poy_temp[y], Pof_temp[f]]) 
     if len(optimals) == 0:
-        values_Pox.append(1)
-        values_Poy.append(1)
-        values_Pof.append(1)
-        for x in range (len(Pox_temp)):
-            for y in range (len(Poy_temp)):
-                for f in range (len(Pof_temp)):
-                    if Pox_temp[x] * Poy_temp[y] * Pof_temp[f] > DSP:
-                        continue      
-                    cycles = 0
-                    for L in range (len(Nof)):
-                        cycles += (Nox[L]/Pox_temp[x])*(Noy[L]/Poy_temp[y])*(Nof[L]/Pof_temp[f])
-                    if cycles < min_cycles:
-                        min_cycles = cycles
-                        optimals = [[Pox_temp[x], Poy_temp[y], Pof_temp[f]]]
-                    elif cycles == min_cycles:
-                        optimals.append([Pox_temp[x], Poy_temp[y], Pof_temp[f]])   
+        return [0,Pox_temp[-1]*Poy_temp[-1]*Pof_temp[-1]]
     return optimals
 
 ## Finds the best unrolling factors among a set which best minimizes the difference between P*/Psum and N*/Nsum.
@@ -297,6 +282,9 @@ def tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy
 ## Produces the final output of the optimized design space search
 def optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP, fpga_buffer_size):
     optimals_tmp = find_unrolling(Nox,Noy,Nof,DSP) # finds all possible sets of unrolling variables that minimize latency
+    if optimals_tmp[0] == 0:
+        print(f'An FPGA board with at least {optimals_tmp[1]} DSP units is required.')
+        return
     optimals = [] # used to store filtered unrolling variables
     unrolling_id = 0 # index of unrolling variable currently under evaluation
     ox_full = 1 # 1 if Tox = Nox, 0 otherwise
@@ -321,6 +309,7 @@ def optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S,
             unrolling_id += 1 # move on to the next set of unrolling variables
     if len(optimals) == 0: # if not able to find design variables that result in a smaller buffer than the available BRAM
         print(f'An FPGA board with at least {min_buffer/(1000000)} Mbit BRAM is required')
+        return
     else:
         (Pox, Poy, Pof) = find_best_unrolling(Nox, Noy, Nof, optimals) # find the set of unrolling variable where Pox:Poy:Pof is as similar to Nox:Noy:Nof as possible
         if ox_full == 1: # Retrieves tililng variables for this set of unrolling variables if Tox = Nox
@@ -355,5 +344,5 @@ S = np.array([1,1,1,1,1,1,1,1,1,1,1,1,1])
 Nkx = np.array([3,3,3,3,3,3,3,3,3,3,3,3,3])
 Nky = np.array([3,3,3,3,3,3,3,3,3,3,3,3,3])
 Nif = np.array([3,64,128,128,256,256,256,512,512,512,512,512,512])
-DSP = 220
+DSP = 5
 optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP, fpga_buffer_size)
