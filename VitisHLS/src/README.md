@@ -1,0 +1,1 @@
+This is the source directory to keep files generated out of HLS.
