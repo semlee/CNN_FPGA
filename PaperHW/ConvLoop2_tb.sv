@@ -18,10 +18,12 @@ wire write_en;
 wire [32-1:0] bram_rd_addr;
 wire [32-1:0] bram_wr_addr;
 
+wire tile_pof_done;
+wire tile_done;
 
 ConvTop conv_top(.clk(clk),.rst_n(rst_n),.input_pixels(pixels_1D),.weights(weights_1D),.output_pixels(output_pixels),
                   .ready(ready),.valid(valid),.read_en(read_en),.write_en(write_en),.bram_rd_addr(bram_rd_addr),.bram_wr_addr(bram_wr_addr),
-                  .tile_done());
+                  .tile_pof_done(tile_pof_done),.tile_done(tile_done));
 
 always
 		#5 clk = ~clk;
@@ -57,9 +59,19 @@ initial begin
 
    repeat (5) @(negedge clk);
    ready = 1;
+   @(negedge clk);
+   ready = 0;
 
 
-   repeat (2*Nif*kx*kx) @(posedge clk); // if the sine waveform appears, then the design is correct.
+
+   repeat (20*Nif*kx*kx) @(posedge clk); // if the sine waveform appears, then the design is correct.
+
+   ready = 1;
+   @(negedge clk);
+   ready = 0;
+
+   repeat (20*Nif*kx*kx) @(posedge clk); // if the sine waveform appears, then the design is correct.
+
 	$stop();
 
 
