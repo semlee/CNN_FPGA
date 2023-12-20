@@ -333,7 +333,7 @@ def tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy
 def optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP, fpga_buffer_size, Pox_upperbound, Poy_upperbound, Pof_upperbound):
     optimals_tmp = find_unrolling(Nox,Noy,Nof,DSP, Pox_upperbound, Poy_upperbound, Pof_upperbound) # finds all possible sets of unrolling variables that minimize latency
     if optimals_tmp == 0:
-        print(f'Unable to find unrolling parameters under the constraints, try loosening upper bounds on them or use FPGA board with more DSP units.')
+        print(f'Unable to find unrolling parameters under the constraints, try loosening upper bounds on them.')
         return
     #optimals_tmp = [[3,3,3]]
     optimals = [] # used to store filtered unrolling variables
