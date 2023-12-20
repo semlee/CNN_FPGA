@@ -145,11 +145,11 @@ def tiling(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx,
         Tof_high[L] = Nof[L]
     
     Tiy = (Toy_high-1)*S + Nky
-    words_px_high = Tix * Tiy * Tif + Tox * Toy_high * Tof_low * pixel_datawidth
+    words_px_high = (Tix * Tiy * Tif + Tox * Toy_high * Tof_low) * pixel_datawidth
     words_wt_low = Tof_low * Tif * Tkx * Tky * weight_datawidth
     
     Tiy = (Toy_low-1)*S + Nky
-    words_px_low = Tix * Tiy * Tif + Tox * Toy_low * Tof_high * pixel_datawidth
+    words_px_low = (Tix * Tiy * Tif + Tox * Toy_low * Tof_high) * pixel_datawidth
     words_wt_high = Tof_high * Tif * Tkx * Tky * weight_datawidth
 
     words_px = np.array(words_px_low)
@@ -195,7 +195,7 @@ def tiling(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx,
         if switched[L] == 1:
             for i in range(len(Tofs[L])):
                 Tiy = (Noy-1)*S + Nky
-                if Tix[L] * Tiy[L] * Tif[L] + Tox[L] * Toy[L] * Tofs[L][i] * pixel_datawidth <= max_words_px:
+                if (Tix[L] * Tiy[L] * Tif[L] + Tox[L] * Toy[L] * Tofs[L][i]) * pixel_datawidth <= max_words_px:
                     if Tofs[L][i] * Tif[L] * Tkx[L] * Tky[L] * weight_datawidth <= max_words_wt:
                         Tof[L] = Tofs[L][i]
                 else:
@@ -203,7 +203,7 @@ def tiling(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx,
         else:
             for i in range(len(Toys[L])):
                 Tiy = (Toys[L][i]-1)*S + Nky
-                if Tix[L] * Tiy[L] * Tif[L] + Tox[L] * Toys[L][i] * Tof[L] * pixel_datawidth<= max_words_px:
+                if (Tix[L] * Tiy[L] * Tif[L] + Tox[L] * Toys[L][i] * Tof[L]) * pixel_datawidth<= max_words_px:
                     Toy[L] = Toys[L][i]
                 else:
                     break
@@ -245,12 +245,12 @@ def tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy
     
     Tix = (Tox_high-1)*S + Nkx
     Tiy = (Toy_high-1)*S + Nky
-    words_px_high = Tix * Tiy * Tif + Tox_high * Toy_high * Tof_low * pixel_datawidth
+    words_px_high = (Tix * Tiy * Tif + Tox_high * Toy_high * Tof_low) * pixel_datawidth
     words_wt_low = Tof_low * Tif * Tkx * Tky * weight_datawidth
     
     Tix = (Tox_low-1)*S + Nkx
     Tiy = (Toy_low-1)*S + Nky
-    words_px_low = Tix * Tiy * Tif + Tox_low * Toy_low * Tof_high * pixel_datawidth
+    words_px_low = (Tix * Tiy * Tif + Tox_low * Toy_low * Tof_high) * pixel_datawidth
     words_wt_high = Tof_high * Tif * Tkx * Tky * weight_datawidth
 
     words_px = np.array(words_px_low)
@@ -301,7 +301,7 @@ def tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy
         if switched[L] == 1:
             for i in range(len(Tofs[L])):
                 Tiy = (Noy-1)*S + Nky
-                if Tix[L] * Tiy[L] * Tif[L] + Tox[L] * Toy[L] * Tofs[L][i] * pixel_datawidth <= max_words_px:
+                if (Tix[L] * Tiy[L] * Tif[L] + Tox[L] * Toy[L] * Tofs[L][i]) * pixel_datawidth <= max_words_px:
                     if Tofs[L][i] * Tif[L] * Tkx[L] * Tky[L] * weight_datawidth <= max_words_wt:
                         Tof[L] = Tofs[L][i]
                 else:
@@ -311,13 +311,13 @@ def tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy
             index_y = 0
             while True:
                 fail = 1
-                if index_x + 1 < len(Tox):
-                    if Tix[L] * Tiy[L] * Tif[L] + Toxs[L][index_x+1] * Toy[L] * Tof[L] * pixel_datawidth <= max_words_px:
+                if index_x + 1 < len(Toxs[L]):
+                    if (Tix[L] * Tiy[L] * Tif[L] + Toxs[L][index_x+1] * Toy[L] * Tof[L]) * pixel_datawidth <= max_words_px:
                         index_x += 1
                         fail = 0
                         Tox[L] = Toxs[L][index_x]
-                if index_y + 1 < len(Toy):
-                    if Tix[L] * Tiy[L] * Tif[L] + Tox[L] * Toys[L][index_y+1] * Tof[L] * pixel_datawidth <= max_words_px:
+                if index_y + 1 < len(Toys[L]):
+                    if (Tix[L] * Tiy[L] * Tif[L] + Tox[L] * Toys[L][index_y+1] * Tof[L]) * pixel_datawidth <= max_words_px:
                         index_y += 1
                         fail = 0
                         Toy[L] = Toys[L][index_y]
@@ -363,8 +363,10 @@ def optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S,
         (Pox, Poy, Pof) = find_best_unrolling(Nox, Noy, Nof, optimals) # find the set of unrolling variable where Pox:Poy:Pof is as similar to Nox:Noy:Nof as possible
         if ox_full == 1: # Retrieves tililng variables for this set of unrolling variables if Tox = Nox
             (Tox, Toy, Tof, buffer_size, initial_buffer_size) = tiling(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, fpga_buffer_size, 1)
+            print('opt')
         else: # Retrieves tililng variables for this set of unrolling variables if Tox < Nox
             (Tox, Toy, Tof, buffer_size, initial_buffer_size) = tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, fpga_buffer_size, 1)
+            print('subopt')
         print(f'Pox: {Pox}\nPoy: {Poy}\nPof: {Pof}')
         print(f'Tox: {Tox}\nToy: {Toy}\nTof: {Tof}\nInitial Buffer Size: {initial_buffer_size/1000000}Mbits\nFinal Buffer Size: {buffer_size/1000000}Mbits')
         
@@ -383,7 +385,7 @@ def hista(words_px,words_wt, max_px, max_wt, words_px_low, words_wt_low):
     plt.show()
 
 ## Inputs
-fpga_buffer_size = 5200000
+fpga_buffer_size = 100000000
 pixel_datawidth = 16
 weight_datawidth = 16
 Nox = np.array([224,224,112,112,56,56,56,28,28,28,14,14,14])
