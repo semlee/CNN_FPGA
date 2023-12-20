@@ -1,15 +1,15 @@
-module Conv_Loop1 #(parameter int kx = 3, Pix = 3, RES=8)(clk,rst_n,weights,pixel_row,west_paddings,pixel_ready,weight_ready,
+module Conv_Loop1 #(parameter int kx = 3, Pix = 3, RES=8)(clk,rst_n,weights,pixel_row,pixel_ready,weight_ready,MAC_clear,
 													pixel_from_FIFO,pixel_to_FIFO,
 													FIFO_wr_en,FIFO_rd_en,FIFO_clear,
-													accumulator_out,kernel_loop_done);
+													accumulator_out,
+													kernel_loop_one_cycle_before_done,kernel_loop_done);
 	input wire clk;
 	input wire rst_n;
-	input  wire [RES-1:0] pixel_row[0:Pix+kx/2-1];
-	input  wire [RES-1:0] west_paddings[0:kx/2-1];
+	input wire [RES-1:0] pixel_row[0:Pix+kx/2+kx/2-1];
 	input wire [RES-1:0] weights[0:kx*kx-1];
 	input wire pixel_ready;
 	input wire weight_ready;
-
+	input wire MAC_clear;
 	
 	input wire [RES-1:0] pixel_from_FIFO [0:Pix-1];
 	output wire [RES-1:0] pixel_to_FIFO [0:Pix-1];
@@ -20,6 +20,7 @@ module Conv_Loop1 #(parameter int kx = 3, Pix = 3, RES=8)(clk,rst_n,weights,pixe
 	output reg FIFO_clear;
 
 	output wire kernel_loop_done;
+	output wire kernel_loop_one_cycle_before_done;
 	output reg [RES-1:0] accumulator_out[0:Pix-1];
 
 
@@ -32,10 +33,11 @@ module Conv_Loop1 #(parameter int kx = 3, Pix = 3, RES=8)(clk,rst_n,weights,pixe
 
 	// Counters
 	reg kernel_counter_enable;
-	reg kernel_weight_index;
+	reg [$clog2(kx*kx-1+1)-1:0] kernel_weight_index;
 	GenericCounter #(.COUNTER_SIZE(kx*kx-1)) kernel_counter(.clk(clk),.rst_n(rst_n),.enable(kernel_counter_enable),.count(kernel_weight_index));
 
 	assign kernel_loop_done = kernel_weight_index==kx*kx-1;
+	assign kernel_loop_one_cycle_before_done = kernel_weight_index==kx*kx-2;
 
 	// register array
 	reg [RES-1:0] shift_reg [0:Pix+1-1];
@@ -46,7 +48,7 @@ module Conv_Loop1 #(parameter int kx = 3, Pix = 3, RES=8)(clk,rst_n,weights,pixe
 
 
 	// it is $clog2(Pix+1) not $clog2(Pix) because the shift register is Pix+1, not Pix
-	reg [$clog2(Pix+1)-1:0] next_to_read_index;
+	reg [$clog2(Pix+kx/2+kx/2+1)-1:0] next_to_read_index;
 	
 
 	always @(posedge clk or negedge rst_n) begin
@@ -55,10 +57,11 @@ module Conv_Loop1 #(parameter int kx = 3, Pix = 3, RES=8)(clk,rst_n,weights,pixe
 				shift_reg[i] <= {RES{1'b0}};// Reset the shift register to all zeros
 			end
 		end else if (shift_en) begin
-			shift_reg <= {shift_reg[Pix-1:0], reg_array_prepare_stage}; // Shift in data from data_in
+			shift_reg[0:Pix-1] <= shift_reg[1:Pix];
+			shift_reg[Pix] <= reg_array_prepare_stage;
 		end
 		else if(shift_load)begin
-			shift_reg <= full_row[0:Pix-1];
+			shift_reg <= full_row[0:Pix];
 		end
 	end
 	
@@ -68,7 +71,14 @@ module Conv_Loop1 #(parameter int kx = 3, Pix = 3, RES=8)(clk,rst_n,weights,pixe
 	// MAC arrays
 	
 	reg MAC_ready;
-	reg MAC_clear;
+
+	wire [RES-1:0] multiplier_outputs[0:Pix-1];
+	genvar i;
+	generate
+	for(i=0;i<Pix;i=i+1)begin
+		Multiplier #(.RES(RES)) multiplier(.clk(clk),.rst_n(rst_n),.a(shift_reg[i]),.b(weights[kernel_weight_index]),.p(multiplier_outputs[i]));
+	end
+	endgenerate
 
 	always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -77,7 +87,10 @@ module Conv_Loop1 #(parameter int kx = 3, Pix = 3, RES=8)(clk,rst_n,weights,pixe
 			end
         end else if (MAC_ready) begin
 			for (int i = 0; i < Pix; i = i + 1) begin
-            	accumulator_out[i] <= accumulator_out[i] + shift_reg[i]*weights[kernel_weight_index];
+				// Synthesis attributes to suggest DSP slice usage
+				// synthesis attribute DSP_style : "use_DSP" 
+				// synthesis attribute FULL_ADDER_STYLE : "DSP";
+            	accumulator_out[i] <= accumulator_out[i] + multiplier_outputs[i];
 			end
         end
         else if (MAC_clear) begin
@@ -97,6 +110,22 @@ module Conv_Loop1 #(parameter int kx = 3, Pix = 3, RES=8)(clk,rst_n,weights,pixe
 		else
 			state<=nxt_state;
 	end
+
+	always @ (pixel_ready or weight_ready) begin
+		if(pixel_ready&&weight_ready&&kernel_weight_index==0)
+			for (int i = 0; i < Pix+kx/2+kx/2; i = i + 1) begin
+				full_row[i]<=pixel_row[i];
+			end
+	end
+
+	always @ (posedge clk or negedge rst_n) begin
+		if(!rst_n)
+			next_to_read_index<=Pix;
+		else if(nxt_state==Load_one_from_buffer)
+			next_to_read_index<=next_to_read_index+1;
+		else
+			next_to_read_index<=Pix;
+	end
 	
 	always_comb begin
 		nxt_state=state;
@@ -111,9 +140,8 @@ module Conv_Loop1 #(parameter int kx = 3, Pix = 3, RES=8)(clk,rst_n,weights,pixe
 		case(state)
 			Load_multiple_from_buffer:begin
 				if(pixel_ready&&weight_ready&&kernel_weight_index==0)begin
-					full_row={west_paddings,pixel_row};
+					
 					shift_load=1;
-					next_to_read_index=Pix;
 					MAC_ready=1;
 					FIFO_wr_en=1;
 					nxt_state = Load_one_from_buffer;
@@ -134,7 +162,6 @@ module Conv_Loop1 #(parameter int kx = 3, Pix = 3, RES=8)(clk,rst_n,weights,pixe
 				else begin
 					reg_array_prepare_stage = full_row[next_to_read_index];
 					shift_en=1;
-					next_to_read_index=next_to_read_index+1;
 					MAC_ready=1;
 					kernel_counter_enable=1;
 					FIFO_wr_en=1;
@@ -152,6 +179,7 @@ module Conv_Loop1 #(parameter int kx = 3, Pix = 3, RES=8)(clk,rst_n,weights,pixe
 					// if went through all the weights, which means it takes kx*kx cycles
 					FIFO_clear=1;
 					kernel_counter_enable=1;
+					MAC_ready=1;
 					nxt_state=Load_multiple_from_buffer;
 				end
 				else begin

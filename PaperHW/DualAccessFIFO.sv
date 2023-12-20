@@ -3,15 +3,15 @@ module DualAccessFIFO#(
     parameter DEPTH = 4,
     parameter WIDTH = 3
 ) (
-    input clk,
-    input rst_n,
-    input wr_en,
-    input rd_en,
-    input [RES-1:0] data_in[WIDTH-1:0],
-    input clear,
-    output reg [RES-1:0] data_out[WIDTH-1:0],
-    output reg empty,
-    output reg full
+    input logic clk,
+    input logic rst_n,
+    input logic wr_en,
+    input logic rd_en,
+    input logic [RES-1:0] data_in[WIDTH-1:0],
+    input logic clear,
+    output logic [RES-1:0] data_out[WIDTH-1:0],
+    output logic empty,
+    output logic full
 );
 
 reg [RES-1:0] mem [DEPTH-1:0][WIDTH-1:0];
