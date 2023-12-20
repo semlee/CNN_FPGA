@@ -333,7 +333,7 @@ def tiling_subop(Pox, Poy, Pof, pixel_datawidth, weight_datawidth, Nif, Nox, Noy
 def optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP, fpga_buffer_size, Pox_upperbound, Poy_upperbound, Pof_upperbound):
     optimals_tmp = find_unrolling(Nox,Noy,Nof,DSP, Pox_upperbound, Poy_upperbound, Pof_upperbound) # finds all possible sets of unrolling variables that minimize latency
     if optimals_tmp == 0:
-        print(f'Unable to find unrolling parameters under the constraints, try loosening upper bounds on them.')
+        print(f'Unable to find unrolling parameters under the constraints, try loosening upper bounds on them or use FPGA board with more DSP units.')
         return
     #optimals_tmp = [[3,3,3]]
     optimals = [] # used to store filtered unrolling variables
@@ -390,9 +390,9 @@ def hista(words_px,words_wt, max_px, max_wt, words_px_low, words_wt_low):
     plt.show()
 
 ## Inputs
-fpga_buffer_size = 100000000
-pixel_datawidth = 16
-weight_datawidth = 16
+fpga_buffer_size = 5000000
+pixel_datawidth = 4
+weight_datawidth = 4
 Nox = np.array([224,224,112,112,56,56,56,28,28,28,14,14,14])
 Noy = np.array([224,224,112,112,56,56,56,28,28,28,14,14,14])
 Nof = np.array([64,64,128,128,256,256,256,512,512,512,512,512,512])
@@ -401,8 +401,8 @@ Nkx = np.array([3,3,3,3,3,3,3,3,3,3,3,3,3])
 Nky = np.array([3,3,3,3,3,3,3,3,3,3,3,3,3])
 # Nif = np.array([3,64,128,128,256,256,256,512,512,512,512,512,512])
 Nif = np.array([3,64,64,128,128,256,256,256,512,512,512,512,512])
-DSP = 3200
-Pox_upperbound = 100
-Poy_upperbound = 100
-Pof_upperbound = 100
+DSP = 5
+Pox_upperbound = 3
+Poy_upperbound = 3
+Pof_upperbound = 3
 optimize(pixel_datawidth, weight_datawidth, Nif, Nox, Noy, Nkx, Nky, Nof, S, DSP, fpga_buffer_size, Pox_upperbound, Poy_upperbound, Pof_upperbound)
