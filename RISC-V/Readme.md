@@ -1,1 +1,0 @@
-This is the directory for keeping INT32 RISC-V Control processor for implementation using FPGA
