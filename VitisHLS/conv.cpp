@@ -1,23 +1,6 @@
 
 #include "conv.hpp"
 
-
-// template <int N, typename T> void load ( T (&out)[N], const T* in) {
-// #pragma HLS INLINE off
-//     for (int i = 0; i < N; ++i) {
-// #pragma HLS pipeline
-//         out[i] = in[i];
-//     }
-// }
-
-// template <int N, typename T> void store (T* out, const T (&in)[N]) {
-// #pragma HLS INLINE off
-//     for (int i = 0; i < N; ++i) {
-// #pragma HLS pipeline
-//         out[i] = in[i];
-//     }
-// }
-
 static void read_input(const float8* in, float8* input_buf, const int vSize) {
 // Auto-pipeline is going to apply pipeline to this loop
 mem_rd:
@@ -32,12 +15,6 @@ static void write_result(float8* out, float8 output_buf) {
 mem_wr:
     out[0] = output_buf;
 }
-
-// Read Input data from inStream and write the result into outStream
-// static void compute_conv(const float32* input,
-//                         const float32* filter,
-//                         float32* output, 
-//                         int Nof, int Noy, int Nox, int Nif, int Nky, int Nkx, int S) {
 
 void compute_conv (float8 output, float8* input, float8* filter, uint8_t Nof, uint8_t Noy, uint8_t Nox, uint8_t Nif, uint8_t Nky, uint8_t Nkx, uint8_t S) {
     uint8_t ni, ky, kx;
@@ -63,7 +40,7 @@ void compute_conv (float8 output, float8* input, float8* filter, uint8_t Nof, ui
 }
 
 /*
-    Vector Addition Kernel Implementation using dataflow
+    Convolution Kernel Implementation using dataflow
     Arguments:
         input   (input)  --> Input Vector 1
         filter   (input)  --> Input Vector 2
@@ -81,7 +58,7 @@ void conv (const float8* input, const float8* filter, float8* output) {
 
 #pragma HLS DATAFLOW
 	for (no = 0; no < Nof; no+= Pof) {
-// #pragma HLS UNROLL factor=Pof
+// #pragma HLS UNROLL factor=Pof //No longer needed from vectorization
 		for (y = 0; y < Noy; y++) {
 #pragma HLS UNROLL factor=Poy
 			for (x = 0; x < Nox; x++) {
@@ -101,21 +78,3 @@ void conv (const float8* input, const float8* filter, float8* output) {
         }
     }
 }
-
-/*
-
-	for (no = 0; no < Nof; no++) {
-#pragma HLS UNROLL factor=Pof
-		for (y = 0; y < Noy; y++) {
-#pragma HLS UNROLL factor=Poy
-			for (x = 0; x < Nox; x++) {
-#pragma HLS UNROLL factor=Pox
-
-                // read_input(&input[inputIndex], input_buf, in_loopSize);
-                // read_input(&filter[filterIndex], filter_buf, in_loopSize);
-                // write_result(&output[outputIndex], output_buf, in_loopSize);
-
-
-                
-
-*/
