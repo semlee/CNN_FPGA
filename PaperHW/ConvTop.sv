@@ -184,14 +184,12 @@ module ConvTop
         conv_loop1_weight_ready=0;
         conv_loop1_pixel_ready=0;
         MAC_clear=0;
-        Tof_clear=0;
         case(input_state)
             idle:begin
-                if(ready)begin
+                if(ready && Tof_index==0)begin
                     conv_loop1_weight_ready=1;
                     conv_loop1_pixel_ready=1;
                     nxt_input_state=kernel_in_progress_state;
-                    Tof_clear=1;
                 end
                 else if(Tof_index<Tof/Pof)begin
                     conv_loop1_weight_ready=1;
@@ -240,6 +238,8 @@ module ConvTop
         write_en=0;
         Pof_index_enable=0;
         bram_wr_addr_next=0;
+        Tof_clear=0;
+
         case(output_state)
             idle_write:begin
                 if(valid)begin
@@ -247,6 +247,10 @@ module ConvTop
                     write_en=1;
                     bram_wr_addr_next=1;
                     nxt_output_state=writing_to_buffer;
+                end
+                else if(tile_done)begin
+                    Tof_clear=1;
+                    nxt_output_state=idle_write;
                 end
             end
             writing_to_buffer:begin

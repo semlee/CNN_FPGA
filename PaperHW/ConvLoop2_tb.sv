@@ -59,16 +59,16 @@ initial begin
 
    repeat (5) @(negedge clk);
    ready = 1;
-   @(negedge clk);
-   ready = 0;
+   // @(negedge clk);
+   // ready = 0;
 
 
 
    repeat (20*Nif*kx*kx) @(posedge clk); // if the sine waveform appears, then the design is correct.
 
-   ready = 1;
-   @(negedge clk);
-   ready = 0;
+   // ready = 1;
+   // @(negedge clk);
+   // ready = 0;
 
    repeat (20*Nif*kx*kx) @(posedge clk); // if the sine waveform appears, then the design is correct.
 
